@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../models/service_model.dart';
 import '../models/laundry_order_model.dart';
+import '../models/order_detail_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -62,5 +63,12 @@ class FirestoreService {
     return snapshot.docs
         .map((doc) => LaundryOrderModel.fromFirestore(doc.data()))
         .toList();
+  }
+
+  Future<void> addOrderDetail(OrderDetailModel detail) async {
+    await _db
+        .collection('order_details')
+        .doc('detail_${detail.orderDetailId}')
+        .set(detail.toFirestore());
   }
 }

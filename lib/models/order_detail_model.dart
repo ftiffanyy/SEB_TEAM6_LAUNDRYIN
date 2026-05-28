@@ -2,7 +2,7 @@ class OrderDetailModel {
   final int orderDetailId;
   final int orderId;
   final int serviceId;
-  final double weight;
+  final int weight;
 
   OrderDetailModel({
     required this.orderDetailId,
@@ -16,7 +16,7 @@ class OrderDetailModel {
       orderDetailId: data['order_detail_id'] ?? 0,
       orderId: data['order_id'] ?? 0,
       serviceId: data['service_id'] ?? 0,
-      weight: (data['weight'] ?? 0).toDouble(),
+      weight: data['weight'] ?? 0,
     );
   }
 

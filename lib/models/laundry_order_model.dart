@@ -6,7 +6,7 @@ class LaundryOrderModel {
   final int userId;
   final int createdBy;
   final Timestamp orderDate;
-  final double totalWeight;
+  final int totalWeight;
   final int totalAmount;
   final String notes;
   final String status;
