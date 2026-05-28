@@ -25,15 +25,15 @@ class LaundryOrderModel {
 
   factory LaundryOrderModel.fromFirestore(Map<String, dynamic> data) {
     return LaundryOrderModel(
-      orderId: data['order_id'],
-      orderCode: data['order_code'],
-      userId: data['user_id'],
-      createdBy: data['created_by'],
-      orderDate: data['order_date'],
-      totalWeight: (data['total_weight']).toDouble(),
-      totalAmount: data['total_amount'],
-      notes: data['notes'],
-      status: data['status'],
+      orderId: data['order_id'] ?? 0,
+      orderCode: data['order_code'] ?? '',
+      userId: data['user_id'] ?? 0,
+      createdBy: data['created_by'] ?? 0,
+      orderDate: data['order_date'] ?? Timestamp.now(),
+      totalWeight: data['total_weight'] ?? 0,
+      totalAmount: data['total_amount'] ?? 0,
+      notes: data['notes'] ?? '',
+      status: data['status'] ?? '',
     );
   }
 

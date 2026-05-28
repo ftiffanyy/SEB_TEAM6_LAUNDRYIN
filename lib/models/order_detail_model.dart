@@ -13,10 +13,10 @@ class OrderDetailModel {
 
   factory OrderDetailModel.fromFirestore(Map<String, dynamic> data) {
     return OrderDetailModel(
-      orderDetailId: data['order_detail_id'],
-      orderId: data['order_id'],
-      serviceId: data['service_id'],
-      weight: (data['weight']).toDouble(),
+      orderDetailId: data['order_detail_id'] ?? 0,
+      orderId: data['order_id'] ?? 0,
+      serviceId: data['service_id'] ?? 0,
+      weight: (data['weight'] ?? 0).toDouble(),
     );
   }
 

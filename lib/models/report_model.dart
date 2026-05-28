@@ -19,12 +19,12 @@ class ReportModel {
 
   factory ReportModel.fromFirestore(Map<String, dynamic> data) {
     return ReportModel(
-      reportId: data['report_id'],
-      startDate: data['start_date'],
-      endDate: data['end_date'],
-      totalOrders: data['total_orders'],
-      totalRevenue: data['total_revenue'],
-      generatedAt: data['generated_at'],
+      reportId: data['report_id'] ?? 0,
+      startDate: data['start_date'] ?? Timestamp.now(),
+      endDate: data['end_date'] ?? Timestamp.now(),
+      totalOrders: data['total_orders'] ?? 0,
+      totalRevenue: data['total_revenue'] ?? 0,
+      generatedAt: data['generated_at'] ?? Timestamp.now(),
     );
   }
 

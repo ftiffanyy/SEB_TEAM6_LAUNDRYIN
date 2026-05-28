@@ -23,14 +23,14 @@ class NotificationModel {
 
   factory NotificationModel.fromFirestore(Map<String, dynamic> data) {
     return NotificationModel(
-      notificationId: data['notification_id'],
-      orderId: data['order_id'],
-      userId: data['user_id'],
-      title: data['title'],
-      message: data['message'],
-      sentAt: data['sent_at'],
-      isRead: data['is_read'],
-      type: data['type'],
+      notificationId: data['notification_id'] ?? 0,
+      orderId: data['order_id'] ?? 0,
+      userId: data['user_id'] ?? 0,
+      title: data['title'] ?? '',
+      message: data['message'] ?? '',
+      sentAt: data['sent_at'] ?? Timestamp.now(),
+      isRead: data['is_read'] ?? false,
+      type: data['type'] ?? '',
     );
   }
 

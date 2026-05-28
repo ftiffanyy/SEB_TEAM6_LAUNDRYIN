@@ -19,12 +19,12 @@ class StatusHistoryModel {
 
   factory StatusHistoryModel.fromFirestore(Map<String, dynamic> data) {
     return StatusHistoryModel(
-      statusHistoryId: data['status_history_id'],
-      orderId: data['order_id'],
-      notes: data['notes'],
-      changedBy: data['changed_by'],
-      changedAt: data['changed_at'],
-      status: data['status'],
+      statusHistoryId: data['status_history_id'] ?? 0,
+      orderId: data['order_id'] ?? 0,
+      notes: data['notes'] ?? '',
+      changedBy: data['changed_by'] ?? 0,
+      changedAt: data['changed_at'] ?? Timestamp.now(),
+      status: data['status'] ?? '',
     );
   }
 
