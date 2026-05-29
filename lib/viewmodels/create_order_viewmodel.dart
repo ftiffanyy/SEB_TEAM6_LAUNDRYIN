@@ -15,14 +15,43 @@ class CreateOrderViewModel {
   }
 
   Future<List<ServiceModel>> getServices() async {
-    return await _firestoreService.getServices();
+    final services = await _firestoreService.getServices();
+
+    return services.where((service) {
+      return service.isActive;
+    }).toList();
+  }
+
+  Future<int> getNextOrderId() async {
+    final orders = await _firestoreService.getOrders();
+
+    if (orders.isEmpty) {
+      return 1;
+    }
+
+    final maxOrderId = orders
+        .map((order) => order.orderId)
+        .reduce((a, b) => a > b ? a : b);
+
+    return maxOrderId + 1;
+  }
+
+  Future<int> getNextUserId() async {
+    final users = await _firestoreService.getUsers();
+
+    if (users.isEmpty) return 1;
+
+    return users
+            .map((e) => e.userId)
+            .reduce((a, b) => a > b ? a : b) +
+        1;
   }
 
   Future<UserModel> addNewCustomer({
     required String name,
     required String phone,
   }) async {
-    final newId = DateTime.now().millisecondsSinceEpoch;
+    final newId = await getNextUserId();
 
     final customer = UserModel(
       userId: newId,
@@ -47,8 +76,8 @@ class CreateOrderViewModel {
     required int totalAmount,
     required String notes,
   }) async {
-    final orderId = DateTime.now().millisecondsSinceEpoch;
-    final orderCode = 'ORD$orderId';
+    final orderId = await getNextOrderId();
+    final orderCode = 'ORD${orderId.toString().padLeft(3, '0')}';
 
     final order = LaundryOrderModel(
       orderId: orderId,

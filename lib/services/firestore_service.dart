@@ -4,6 +4,7 @@ import '../models/user_model.dart';
 import '../models/service_model.dart';
 import '../models/laundry_order_model.dart';
 import '../models/order_detail_model.dart';
+import '../models/status_history_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -46,6 +47,17 @@ class FirestoreService {
         .toList();
   }
 
+  Future<void> updateService(ServiceModel service) async {
+    final snapshot = await _db
+        .collection('services')
+        .where('service_id', isEqualTo: service.serviceId)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      await snapshot.docs.first.reference.update(service.toFirestore());
+    }
+  }
+
   // =========================
   // ORDERS
   // =========================
@@ -65,10 +77,51 @@ class FirestoreService {
         .toList();
   }
 
+  Future<List<OrderDetailModel>> getOrderDetails() async {
+    final snapshot =
+        await _db.collection('order_details').get();
+
+    return snapshot.docs
+        .map(
+          (doc) => OrderDetailModel.fromFirestore(
+            doc.data(),
+          ),
+        )
+        .toList();
+}
+
   Future<void> addOrderDetail(OrderDetailModel detail) async {
     await _db
         .collection('order_details')
         .doc('detail_${detail.orderDetailId}')
         .set(detail.toFirestore());
+  }
+
+  Future<void> updateOrderStatus(int orderId, String status) async {
+    final snapshot = await _db
+        .collection('laundry_orders')
+        .where('order_id', isEqualTo: orderId)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      await snapshot.docs.first.reference.update({
+        'status': status,
+      });
+    }
+  }
+
+  Future<List<StatusHistoryModel>> getStatusHistories() async {
+    final snapshot = await _db.collection('status_history').get();
+
+    return snapshot.docs
+        .map((doc) => StatusHistoryModel.fromFirestore(doc.data()))
+        .toList();
+  }
+
+  Future<void> addStatusHistory(StatusHistoryModel statusHistory) async {
+    await _db
+        .collection('status_history')
+        .doc('status_${statusHistory.statusHistoryId}')
+        .set(statusHistory.toFirestore());
   }
 }

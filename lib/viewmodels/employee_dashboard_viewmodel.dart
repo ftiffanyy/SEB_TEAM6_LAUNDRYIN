@@ -27,6 +27,7 @@ class EmployeeDashboardViewModel {
       'totalRevenue': totalRevenue,
       'completedOrders': completedOrders,
       'activeOrders': activeOrders,
+      'orders': orders,
     };
   }
 }

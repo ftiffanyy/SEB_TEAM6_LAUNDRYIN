@@ -39,6 +39,40 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   void initState() {
     super.initState();
     loadData();
+
+    weightController.addListener(() {
+      calculateTotalAmount();
+    });
+  }
+
+  int getPricePerKg(int serviceId) {
+    switch (serviceId) {
+      case 1:
+        return 10000;
+      case 2:
+        return 25000; // 10k + 15k
+      case 3:
+        return 25000; // 10k + 15k
+      case 4:
+        return 5000;
+      case 5:
+        return 15000;
+      default:
+        return 0;
+    }
+  }
+
+  void calculateTotalAmount() {
+    if (selectedService == null || weightController.text.isEmpty) {
+      totalAmountController.text = '';
+      return;
+    }
+
+    final weight = int.tryParse(weightController.text) ?? 0;
+    final pricePerKg = getPricePerKg(selectedService!.serviceId);
+    final total = weight * pricePerKg;
+
+    totalAmountController.text = total.toString();
   }
 
   Future<void> loadData() async {
@@ -63,6 +97,11 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       return;
     }
 
+    if (weightController.text.trim().isEmpty) {
+      setState(() => message = 'Isi weight dulu');
+      return;
+    }
+
     setState(() {
       isSaving = true;
       message = '';
@@ -80,7 +119,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
         if (selectedCustomer == null) {
           setState(() {
             isSaving = false;
-            message = 'Pilih customer dari hasil search atau aktifkan Add New Customer';
+            message =
+                'Pilih customer dari hasil search atau aktifkan Add New Customer';
           });
           return;
         }
@@ -120,11 +160,24 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   }
 
   @override
+  void dispose() {
+    customerSearchController.dispose();
+    newCustomerPhoneController.dispose();
+    weightController.dispose();
+    totalAmountController.dispose();
+    notesController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final searchText = customerSearchController.text.toLowerCase();
+
     final filteredCustomers = customers.where((customer) {
-      return customer.name.toLowerCase().contains(
-            customerSearchController.text.toLowerCase(),
-          );
+      final name = customer.name.toLowerCase();
+      final phone = customer.phone.toLowerCase();
+
+      return name.contains(searchText) || phone.contains(searchText);
     }).toList();
 
     return Scaffold(
@@ -146,7 +199,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   children: [
                     const Text(
                       'Customer Information',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 14),
 
@@ -158,7 +212,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                         });
                       },
                       decoration: InputDecoration(
-                        labelText: 'Search / Input Customer Name',
+                        labelText: 'Search by Customer Name / Phone Number',
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -166,7 +220,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       ),
                     ),
 
-                    if (!addNewCustomer && customerSearchController.text.isNotEmpty)
+                    if (!addNewCustomer &&
+                        customerSearchController.text.isNotEmpty)
                       ...filteredCustomers.map((customer) {
                         return ListTile(
                           leading: const Icon(Icons.person),
@@ -214,7 +269,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   children: [
                     const Text(
                       'Order Detail',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 14),
 
@@ -235,6 +291,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       onChanged: (value) {
                         setState(() {
                           selectedService = value;
+                          calculateTotalAmount();
                         });
                       },
                     ),
@@ -242,8 +299,29 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                     const SizedBox(height: 14),
 
                     inputField(weightController, 'Weight (kg)', Icons.scale),
-                    inputField(totalAmountController, 'Total Amount', Icons.payments),
-                    inputField(notesController, 'Notes', Icons.note, isNumber: false),
+
+                    TextField(
+                      controller: totalAmountController,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: 'Total Amount',
+                        prefixIcon: const Icon(Icons.payments),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    inputField(
+                      notesController,
+                      'Notes',
+                      Icons.note,
+                      isNumber: false,
+                    ),
                   ],
                 ),
 
@@ -268,7 +346,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                     message,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: message.startsWith('Error') ? Colors.red : Colors.green,
+                      color:
+                          message.startsWith('Error') ? Colors.red : Colors.green,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -327,9 +406,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
           ),
         ],
       ),
-      child: Column(
-        children: children,
-      ),
+      child: Column(children: children),
     );
   }
 
