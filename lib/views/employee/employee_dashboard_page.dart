@@ -110,12 +110,6 @@ class EmployeeDashboardPage extends StatelessWidget {
                   ),
                 ),
 
-                // PAYMENT
-                menuCard(
-                  Icons.payment,
-                  'Process Payment',
-                ),
-
                 // UPDATE STATUS
                 menuCard(
                   Icons.update,
