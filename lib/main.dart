@@ -67,7 +67,6 @@ class TestFirestorePage extends StatelessWidget {
 
               return ListTile(
                 title: Text(user.name),
-                subtitle: Text(user.email),
                 trailing: Text(user.role),
               );
             },

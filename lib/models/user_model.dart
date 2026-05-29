@@ -1,23 +1,21 @@
 class UserModel {
   final int userId;
   final String name;
-  final String username;
-  final String password;
-  final String email;
+  final String? username;
+  final String? password;
   final String phone;
-  final String address;
-  final String fcmToken;
+  final String? address;
+  final String? fcmToken;
   final String role;
 
   UserModel({
     required this.userId,
     required this.name,
-    required this.username,
-    required this.password,
-    required this.email,
+    this.username,
+    this.password,
     required this.phone,
-    required this.address,
-    required this.fcmToken,
+    this.address,
+    this.fcmToken,
     required this.role,
   });
 
@@ -25,13 +23,12 @@ class UserModel {
     return UserModel(
       userId: data['user_id'] ?? 0,
       name: data['name'] ?? '',
-      username: data['username'] ?? '',
-      password: data['password'] ?? '',
-      email: data['email'] ?? '',
+      username: data['username'],
+      password: data['password'],
       phone: data['phone'] ?? '',
-      address: data['address'] ?? '',
-      fcmToken: data['fcm_token'] ?? '',
-      role: data['role'] ?? '',
+      address: data['address'],
+      fcmToken: data['fcm_token'],
+      role: data['role'] ?? 'Customer',
     );
   }
 
@@ -41,7 +38,6 @@ class UserModel {
       'name': name,
       'username': username,
       'password': password,
-      'email': email,
       'phone': phone,
       'address': address,
       'fcm_token': fcmToken,
