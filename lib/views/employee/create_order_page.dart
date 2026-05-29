@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/user_model.dart';
+import '../../models/service_model.dart';
 import '../../viewmodels/create_order_viewmodel.dart';
 
 class CreateOrderPage extends StatefulWidget {
@@ -16,108 +17,339 @@ class CreateOrderPage extends StatefulWidget {
 }
 
 class _CreateOrderPageState extends State<CreateOrderPage> {
-  final customerIdController = TextEditingController();
-  final serviceIdController = TextEditingController();
+  final viewModel = CreateOrderViewModel();
+
+  final customerSearchController = TextEditingController();
+  final newCustomerPhoneController = TextEditingController();
   final weightController = TextEditingController();
   final totalAmountController = TextEditingController();
   final notesController = TextEditingController();
 
-  final viewModel = CreateOrderViewModel();
+  UserModel? selectedCustomer;
+  ServiceModel? selectedService;
 
-  bool isLoading = false;
+  List<UserModel> customers = [];
+  List<ServiceModel> services = [];
+  bool isLoading = true;
+  bool isSaving = false;
+  bool addNewCustomer = false;
   String message = '';
 
-  Future<void> submitOrder() async {
+  @override
+  void initState() {
+    super.initState();
+    loadData();
+  }
+
+  Future<void> loadData() async {
+    final customerData = await viewModel.getCustomers();
+    final serviceData = await viewModel.getServices();
+
     setState(() {
-      isLoading = true;
+      customers = customerData;
+      services = serviceData;
+      isLoading = false;
+    });
+  }
+
+  Future<void> submitOrder() async {
+    if (selectedService == null) {
+      setState(() => message = 'Pilih service dulu');
+      return;
+    }
+
+    if (customerSearchController.text.trim().isEmpty) {
+      setState(() => message = 'Isi nama customer dulu');
+      return;
+    }
+
+    setState(() {
+      isSaving = true;
       message = '';
     });
 
     try {
+      UserModel customer;
+
+      if (addNewCustomer) {
+        customer = await viewModel.addNewCustomer(
+          name: customerSearchController.text.trim(),
+          phone: newCustomerPhoneController.text.trim(),
+        );
+      } else {
+        if (selectedCustomer == null) {
+          setState(() {
+            isSaving = false;
+            message = 'Pilih customer dari hasil search atau aktifkan Add New Customer';
+          });
+          return;
+        }
+        customer = selectedCustomer!;
+      }
+
       await viewModel.createOrder(
-        customerId: int.parse(customerIdController.text),
+        customer: customer,
         cashierId: widget.employee.userId,
-        serviceId: int.parse(serviceIdController.text),
+        service: selectedService!,
         weight: int.parse(weightController.text),
         totalAmount: int.parse(totalAmountController.text),
         notes: notesController.text,
       );
 
       setState(() {
-        isLoading = false;
+        isSaving = false;
         message = 'Order berhasil dibuat';
+        selectedCustomer = null;
+        selectedService = null;
+        addNewCustomer = false;
       });
 
-      customerIdController.clear();
-      serviceIdController.clear();
+      customerSearchController.clear();
+      newCustomerPhoneController.clear();
       weightController.clear();
       totalAmountController.clear();
       notesController.clear();
+
+      await loadData();
     } catch (e) {
       setState(() {
-        isLoading = false;
+        isSaving = false;
         message = 'Error: $e';
       });
     }
   }
 
   @override
-  void dispose() {
-    customerIdController.dispose();
-    serviceIdController.dispose();
-    weightController.dispose();
-    totalAmountController.dispose();
-    notesController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final filteredCustomers = customers.where((customer) {
+      return customer.name.toLowerCase().contains(
+            customerSearchController.text.toLowerCase(),
+          );
+    }).toList();
+
     return Scaffold(
+      backgroundColor: const Color(0xffF4F7FB),
       appBar: AppBar(
         title: const Text('Create Order'),
+        backgroundColor: const Color(0xff4A90E2),
+        foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: ListView(
-          children: [
-            inputField(customerIdController, 'Customer ID'),
-            inputField(serviceIdController, 'Service ID'),
-            inputField(weightController, 'Weight'),
-            inputField(totalAmountController, 'Total Amount'),
-            inputField(notesController, 'Notes'),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                headerCard(),
+                const SizedBox(height: 20),
 
-            const SizedBox(height: 16),
+                formCard(
+                  children: [
+                    const Text(
+                      'Customer Information',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 14),
 
-            ElevatedButton(
-              onPressed: isLoading ? null : submitOrder,
-              child: Text(isLoading ? 'Saving...' : 'Create Order'),
+                    TextField(
+                      controller: customerSearchController,
+                      onChanged: (_) {
+                        setState(() {
+                          selectedCustomer = null;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Search / Input Customer Name',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+
+                    if (!addNewCustomer && customerSearchController.text.isNotEmpty)
+                      ...filteredCustomers.map((customer) {
+                        return ListTile(
+                          leading: const Icon(Icons.person),
+                          title: Text(customer.name),
+                          subtitle: Text(customer.phone),
+                          onTap: () {
+                            setState(() {
+                              selectedCustomer = customer;
+                              customerSearchController.text = customer.name;
+                            });
+                          },
+                        );
+                      }),
+
+                    SwitchListTile(
+                      value: addNewCustomer,
+                      title: const Text('Add New Customer'),
+                      subtitle: const Text('For customer not in database'),
+                      onChanged: (value) {
+                        setState(() {
+                          addNewCustomer = value;
+                          selectedCustomer = null;
+                        });
+                      },
+                    ),
+
+                    if (addNewCustomer)
+                      TextField(
+                        controller: newCustomerPhoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          labelText: 'Customer Phone Number',
+                          prefixIcon: const Icon(Icons.phone),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                formCard(
+                  children: [
+                    const Text(
+                      'Order Detail',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 14),
+
+                    DropdownButtonFormField<ServiceModel>(
+                      value: selectedService,
+                      decoration: InputDecoration(
+                        labelText: 'Select Service',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      items: services.map((service) {
+                        return DropdownMenuItem(
+                          value: service,
+                          child: Text(service.serviceName),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedService = value;
+                        });
+                      },
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    inputField(weightController, 'Weight (kg)', Icons.scale),
+                    inputField(totalAmountController, 'Total Amount', Icons.payments),
+                    inputField(notesController, 'Notes', Icons.note, isNumber: false),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                ElevatedButton(
+                  onPressed: isSaving ? null : submitOrder,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff4A90E2),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(isSaving ? 'Saving...' : 'Create Order'),
+                ),
+
+                if (message.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: message.startsWith('Error') ? Colors.red : Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ],
             ),
+    );
+  }
 
-            const SizedBox(height: 16),
-
-            if (message.isNotEmpty)
+  Widget headerCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xff4A90E2), Color(0xff6BB6FF)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.add_shopping_cart, color: Colors.white, size: 42),
+          SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
-                message,
+                'New Laundry Order',
                 style: TextStyle(
-                  color: message.startsWith('Error') ? Colors.red : Colors.green,
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-          ],
-        ),
+              Text(
+                'Create customer laundry transaction',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget inputField(TextEditingController controller, String label) {
+  Widget formCard({required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: children,
+      ),
+    );
+  }
+
+  Widget inputField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    bool isNumber = true,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 14),
       child: TextField(
         controller: controller,
-        keyboardType: label == 'Notes' ? TextInputType.text : TextInputType.number,
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         decoration: InputDecoration(
           labelText: label,
-          border: const OutlineInputBorder(),
+          prefixIcon: Icon(icon),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
       ),
     );
