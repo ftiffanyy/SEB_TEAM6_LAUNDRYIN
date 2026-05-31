@@ -111,9 +111,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       UserModel customer;
 
       if (addNewCustomer) {
-        customer = await viewModel.addNewCustomer(
+        customer = await viewModel.findOrCreateCustomer(
           name: customerSearchController.text.trim(),
-          phone: newCustomerPhoneController.text.trim(),
+          rawPhone: newCustomerPhoneController.text.trim(),
         );
       } else {
         if (selectedCustomer == null) {

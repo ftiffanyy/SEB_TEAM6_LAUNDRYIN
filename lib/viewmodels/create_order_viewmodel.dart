@@ -5,6 +5,7 @@ import '../models/service_model.dart';
 import '../models/laundry_order_model.dart';
 import '../models/order_detail_model.dart';
 import '../services/firestore_service.dart';
+import '../utils/phone_helper.dart';
 
 class CreateOrderViewModel {
   final FirestoreService _firestoreService = FirestoreService();
@@ -16,18 +17,12 @@ class CreateOrderViewModel {
 
   Future<List<ServiceModel>> getServices() async {
     final services = await _firestoreService.getServices();
-
-    return services.where((service) {
-      return service.isActive;
-    }).toList();
+    return services.where((service) => service.isActive).toList();
   }
 
   Future<int> getNextOrderId() async {
     final orders = await _firestoreService.getOrders();
-
-    if (orders.isEmpty) {
-      return 1;
-    }
+    if (orders.isEmpty) return 1;
 
     final maxOrderId = orders
         .map((order) => order.orderId)
@@ -38,7 +33,6 @@ class CreateOrderViewModel {
 
   Future<int> getNextUserId() async {
     final users = await _firestoreService.getUsers();
-
     if (users.isEmpty) return 1;
 
     return users
@@ -47,25 +41,36 @@ class CreateOrderViewModel {
         1;
   }
 
-  Future<UserModel> addNewCustomer({
+  /// Cari user by phone dulu, baru buat jika belum ada
+  Future<UserModel> findOrCreateCustomer({
+    required String rawPhone,
     required String name,
-    required String phone,
   }) async {
-    final newId = await getNextUserId();
+    // 1. Normalize & validasi phone
+    final normalizedPhone = PhoneHelper.normalize(rawPhone);
+    if (normalizedPhone.isEmpty) {
+      throw Exception('Nomor telepon tidak valid: $rawPhone');
+    }
 
-    final customer = UserModel(
+    // 2. Cek apakah phone sudah terdaftar
+    final existing = await _firestoreService.getUserByPhone(normalizedPhone);
+    if (existing != null) return existing;
+
+    // 3. Belum ada → buat guest user baru
+    final newId = await getNextUserId();
+    final guest = UserModel(
       userId: newId,
-      name: name,
+      name: name.trim(),
       username: null,
       password: null,
-      phone: phone,
+      phone: normalizedPhone,
       address: null,
       fcmToken: null,
       role: 'Customer',
     );
 
-    await _firestoreService.addUser(customer);
-    return customer;
+    await _firestoreService.addUser(guest);
+    return guest;
   }
 
   Future<void> createOrder({
