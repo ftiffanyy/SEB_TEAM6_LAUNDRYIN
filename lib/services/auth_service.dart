@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 import '../models/user_model.dart';
+import '../utils/phone_helper.dart';
 import 'firestore_service.dart';
 
 class AuthException implements Exception {
@@ -38,77 +39,75 @@ class AuthService {
     required String phone,
     String? address,
   }) async {
-    final normalizedPhone = _normalizePhone(phone);
+    // 1. Normalize & validasi phone (fix: sekarang handle +62, 62, 8)
+    final normalizedPhone = PhoneHelper.normalize(phone);
     if (normalizedPhone.isEmpty) {
       throw AuthException('Nomor telepon tidak valid.');
     }
 
+    // 2. Validasi username tidak kosong
     final trimmedUsername = username.trim();
     if (trimmedUsername.isEmpty) {
       throw AuthException('Username tidak boleh kosong.');
     }
 
-    final existingUsername = await _firestoreService.getUserByUsername(trimmedUsername);
-    if (existingUsername != null) {
-      throw AuthException('Username sudah digunakan. Silakan pilih username lain.');
+    // 3. Cek username sudah dipakai orang lain
+    final existingByUsername =
+        await _firestoreService.getUserByUsername(trimmedUsername);
+    if (existingByUsername != null) {
+      throw AuthException(
+          'Username sudah digunakan. Silakan pilih username lain.');
     }
 
-    final usersWithPhone = await _firestoreService.getUsersByPhone(normalizedPhone);
-    final registeredUsers = usersWithPhone
-        .where((user) => user.username != null && user.username!.isNotEmpty)
-        .toList();
+    // 4. Cek phone sudah ada atau belum
+    final existingByPhone =
+        await _firestoreService.getUserByPhone(normalizedPhone);
 
-    if (registeredUsers.isNotEmpty) {
-      throw AuthException('Nomor telepon ini sudah terdaftar. Silakan login.');
-    }
+    if (existingByPhone != null) {
+      // Phone sudah ada, cek apakah sudah full registered
+      final sudahRegistered = existingByPhone.username != null &&
+          existingByPhone.username!.isNotEmpty;
 
-    final guestUsers = usersWithPhone
-        .where((user) => user.username == null || user.username!.isEmpty)
-        .toList();
+      if (sudahRegistered) {
+        throw AuthException(
+            'Nomor telepon ini sudah terdaftar. Silakan login.');
+      }
 
-    if (guestUsers.isEmpty) {
-      final nextId = await _firestoreService.getNextUserId();
-      final newUser = UserModel(
-        userId: nextId,
+      // Guest user dari order admin → upgrade ke full account
+      final upgraded = UserModel(
+        userId: existingByPhone.userId,
         name: name.trim(),
         username: trimmedUsername,
         password: hashPassword(password.trim()),
         phone: normalizedPhone,
-        address: address?.trim(),
-        fcmToken: null,
+        address: address?.trim() ?? existingByPhone.address,
+        fcmToken: existingByPhone.fcmToken,
         role: 'Customer',
       );
 
-      await _firestoreService.addUser(newUser);
-      return newUser;
+      await _firestoreService.updateUser(upgraded);
+      return upgraded;
     }
 
-    final primaryGuest = guestUsers.first;
-    final duplicateGuestIds = guestUsers.skip(1).map((user) => user.userId).toList();
-
-    final upgradedUser = UserModel(
-      userId: primaryGuest.userId,
+    // 5. Phone belum ada sama sekali → buat user baru
+    final nextId = await _firestoreService.getNextUserId();
+    final newUser = UserModel(
+      userId: nextId,
       name: name.trim(),
       username: trimmedUsername,
       password: hashPassword(password.trim()),
       phone: normalizedPhone,
-      address: address?.trim() ?? primaryGuest.address,
-      fcmToken: primaryGuest.fcmToken,
+      address: address?.trim(),
+      fcmToken: null,
       role: 'Customer',
     );
 
-    await _firestoreService.updateUser(upgradedUser);
-    await _firestoreService.transferOrdersToUser(duplicateGuestIds, upgradedUser.userId);
-
-    return upgradedUser;
+    await _firestoreService.addUser(newUser);
+    return newUser;
   }
 
   String hashPassword(String password) {
     final bytes = utf8.encode(password);
     return sha256.convert(bytes).toString();
-  }
-
-  String _normalizePhone(String phone) {
-    return phone.replaceAll(RegExp(r'[^0-9]'), '');
   }
 }

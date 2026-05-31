@@ -40,15 +40,15 @@ class FirestoreService {
     return UserModel.fromFirestore(snapshot.docs.first.data());
   }
 
-  Future<List<UserModel>> getUsersByPhone(String phone) async {
-    final snapshot = await _db
-        .collection('users')
-        .where('phone', isEqualTo: phone)
-        .get();
+  Future<UserModel?> getUserByPhone(String phone) async {
+  final snapshot = await _db
+      .collection('users')
+      .where('phone', isEqualTo: phone)
+      .limit(1)
+      .get();
 
-    return snapshot.docs
-        .map((doc) => UserModel.fromFirestore(doc.data()))
-        .toList();
+  if (snapshot.docs.isEmpty) return null;
+  return UserModel.fromFirestore(snapshot.docs.first.data());
   }
 
   Future<int> getNextUserId() async {
