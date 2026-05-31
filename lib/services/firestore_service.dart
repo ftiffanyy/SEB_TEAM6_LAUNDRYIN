@@ -28,6 +28,72 @@ class FirestoreService {
         .toList();
   }
 
+  Future<UserModel?> getUserByUsername(String username) async {
+    final snapshot = await _db
+        .collection('users')
+        .where('username', isEqualTo: username)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) return null;
+
+    return UserModel.fromFirestore(snapshot.docs.first.data());
+  }
+
+  Future<List<UserModel>> getUsersByPhone(String phone) async {
+    final snapshot = await _db
+        .collection('users')
+        .where('phone', isEqualTo: phone)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => UserModel.fromFirestore(doc.data()))
+        .toList();
+  }
+
+  Future<int> getNextUserId() async {
+    final snapshot = await _db
+        .collection('users')
+        .orderBy('user_id', descending: true)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) return 1;
+
+    final lastId = snapshot.docs.first.data()['user_id'] ?? 0;
+    return lastId + 1;
+  }
+
+  Future<void> updateUser(UserModel user) async {
+    final snapshot = await _db
+        .collection('users')
+        .where('user_id', isEqualTo: user.userId)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      await snapshot.docs.first.reference.update(user.toFirestore());
+    }
+  }
+
+  Future<void> transferOrdersToUser(
+    List<int> oldUserIds,
+    int newUserId,
+  ) async {
+    if (oldUserIds.isEmpty) return;
+
+    final snapshot = await _db
+        .collection('laundry_orders')
+        .where('user_id', whereIn: oldUserIds)
+        .get();
+
+    for (var doc in snapshot.docs) {
+      await doc.reference.update({
+        'user_id': newUserId,
+      });
+    }
+  }
+
   // =========================
   // SERVICES
   // =========================
@@ -51,6 +117,7 @@ class FirestoreService {
     final snapshot = await _db
         .collection('services')
         .where('service_id', isEqualTo: service.serviceId)
+        .limit(1)
         .get();
 
     if (snapshot.docs.isNotEmpty) {
@@ -77,30 +144,11 @@ class FirestoreService {
         .toList();
   }
 
-  Future<List<OrderDetailModel>> getOrderDetails() async {
-    final snapshot =
-        await _db.collection('order_details').get();
-
-    return snapshot.docs
-        .map(
-          (doc) => OrderDetailModel.fromFirestore(
-            doc.data(),
-          ),
-        )
-        .toList();
-}
-
-  Future<void> addOrderDetail(OrderDetailModel detail) async {
-    await _db
-        .collection('order_details')
-        .doc('detail_${detail.orderDetailId}')
-        .set(detail.toFirestore());
-  }
-
   Future<void> updateOrderStatus(int orderId, String status) async {
     final snapshot = await _db
         .collection('laundry_orders')
         .where('order_id', isEqualTo: orderId)
+        .limit(1)
         .get();
 
     if (snapshot.docs.isNotEmpty) {
@@ -110,18 +158,41 @@ class FirestoreService {
     }
   }
 
-  Future<List<StatusHistoryModel>> getStatusHistories() async {
-    final snapshot = await _db.collection('status_history').get();
+  // =========================
+  // ORDER DETAILS
+  // =========================
+
+  Future<void> addOrderDetail(OrderDetailModel detail) async {
+    await _db
+        .collection('order_details')
+        .doc('detail_${detail.orderDetailId}')
+        .set(detail.toFirestore());
+  }
+
+  Future<List<OrderDetailModel>> getOrderDetails() async {
+    final snapshot = await _db.collection('order_details').get();
 
     return snapshot.docs
-        .map((doc) => StatusHistoryModel.fromFirestore(doc.data()))
+        .map((doc) => OrderDetailModel.fromFirestore(doc.data()))
         .toList();
   }
+
+  // =========================
+  // STATUS HISTORY
+  // =========================
 
   Future<void> addStatusHistory(StatusHistoryModel statusHistory) async {
     await _db
         .collection('status_history')
         .doc('status_${statusHistory.statusHistoryId}')
         .set(statusHistory.toFirestore());
+  }
+
+  Future<List<StatusHistoryModel>> getStatusHistories() async {
+    final snapshot = await _db.collection('status_history').get();
+
+    return snapshot.docs
+        .map((doc) => StatusHistoryModel.fromFirestore(doc.data()))
+        .toList();
   }
 }
