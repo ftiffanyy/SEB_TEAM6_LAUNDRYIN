@@ -1,5 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../models/user_model.dart';
+import '../../utils/file_export_helper.dart';
 import '../../models/laundry_order_model.dart';
 import '../../viewmodels/employee_dashboard_viewmodel.dart';
 import 'create_order_page.dart';
@@ -21,6 +28,11 @@ class EmployeeDashboardPage extends StatefulWidget {
 class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
   final EmployeeDashboardViewModel viewModel = EmployeeDashboardViewModel();
 
+  DateTime? _fromDate;
+  DateTime? _toDate;
+  Map<String, dynamic>? _filteredReport;
+  bool _isFiltering = false;
+
   Future<Map<String, dynamic>>? dashboardFuture;
 
   @override
@@ -31,6 +43,24 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
 
   void refreshDashboard() {
     dashboardFuture = viewModel.getDashboardSummary();
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _shareTempFile(String filename, Uint8List bytes, String label) async {
+    if (kIsWeb) {
+      saveFileWeb(filename, bytes, 'application/octet-stream');
+      _showSnack('$label downloaded to browser');
+      return;
+    }
+
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/$filename');
+    await file.writeAsBytes(bytes);
+    await Share.shareXFiles([XFile(file.path)], text: label);
   }
 
   @override
@@ -108,6 +138,189 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
                 ),
 
                 const SizedBox(height: 24),
+
+                // Admin-only reporting controls
+                if (widget.user.role == 'Admin') ...[
+                  const Text(
+                    'Reporting',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              SizedBox(
+                                width: 140,
+                                child: OutlinedButton(
+                                  onPressed: () async {
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: _fromDate ?? DateTime.now(),
+                                      firstDate: DateTime(2000),
+                                      lastDate: DateTime(2100),
+                                    );
+
+                                    if (picked != null) {
+                                      setState(() => _fromDate = picked);
+                                    }
+                                  },
+                                  child: Text(_fromDate == null
+                                      ? 'From'
+                                      : DateFormat('yyyy-MM-dd').format(_fromDate!)),
+                                ),
+                              ),
+                              SizedBox(
+                                width: 140,
+                                child: OutlinedButton(
+                                  onPressed: () async {
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: _toDate ?? DateTime.now(),
+                                      firstDate: DateTime(2000),
+                                      lastDate: DateTime(2100),
+                                    );
+
+                                    if (picked != null) {
+                                      setState(() => _toDate = picked);
+                                    }
+                                  },
+                                  child: Text(_toDate == null
+                                      ? 'To'
+                                      : DateFormat('yyyy-MM-dd').format(_toDate!)),
+                                ),
+                              ),
+                              SizedBox(
+                                width: 140,
+                                child: ElevatedButton(
+                                  onPressed: _isFiltering
+                                      ? null
+                                      : () async {
+                                          if (_fromDate == null || _toDate == null) {
+                                            _showSnack('Please select both from and to dates');
+                                            return;
+                                          }
+
+                                          setState(() => _isFiltering = true);
+
+                                          try {
+                                            final report = await viewModel.getFilteredReport(
+                                              DateTime(_fromDate!.year, _fromDate!.month, _fromDate!.day),
+                                              DateTime(_toDate!.year, _toDate!.month, _toDate!.day, 23, 59, 59),
+                                            );
+
+                                            setState(() {
+                                              _filteredReport = report;
+                                            });
+
+                                            _showSnack('Filter applied');
+                                          } catch (e) {
+                                            _showSnack('Filter failed: $e');
+                                          } finally {
+                                            setState(() => _isFiltering = false);
+                                          }
+                                        },
+                                  child: const Text('Apply Filter'),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              SizedBox(
+                                width: 140,
+                                child: ElevatedButton(
+                                  onPressed: (_filteredReport == null || (_filteredReport?['orders'] as List).isEmpty)
+                                      ? null
+                                      : () async {
+                                          final orders = _filteredReport!['orders'] as List<dynamic>;
+                                          final csv = viewModel.generateCsv(List<LaundryOrderModel>.from(orders));
+                                          final bytes = Uint8List.fromList(csv.codeUnits);
+                                          if (kIsWeb) {
+                                            saveFileWeb('report_${DateTime.now().millisecondsSinceEpoch}.csv', bytes, 'text/csv');
+                                            _showSnack('CSV download started in browser');
+                                            return;
+                                          }
+
+                                          await _shareTempFile('report_${DateTime.now().millisecondsSinceEpoch}.csv', bytes, 'Laporan CSV');
+                                        },
+                                  child: const Text('Export CSV'),
+                                ),
+                              ),
+                              SizedBox(
+                                width: 140,
+                                child: ElevatedButton(
+                                  onPressed: (_filteredReport == null || (_filteredReport?['orders'] as List).isEmpty)
+                                      ? null
+                                      : () async {
+                                          final orders = List<LaundryOrderModel>.from(_filteredReport!['orders'] as List<dynamic>);
+                                          try {
+                                            final bytes = await viewModel.generatePdfBytes(orders);
+                                            if (kIsWeb) {
+                                              saveFileWeb('report_${DateTime.now().millisecondsSinceEpoch}.pdf', bytes, 'application/pdf');
+                                              _showSnack('PDF download started in browser');
+                                              return;
+                                            }
+
+                                            await _shareTempFile('report_${DateTime.now().millisecondsSinceEpoch}.pdf', bytes, 'Laporan PDF');
+                                          } catch (e) {
+                                            _showSnack('Export PDF failed: $e');
+                                          }
+                                        },
+                                  child: const Text('Export PDF'),
+                                ),
+                              ),
+                              SizedBox(
+                                width: 140,
+                                child: ElevatedButton(
+                                  onPressed: (_filteredReport == null || (_filteredReport?['orders'] as List).isEmpty)
+                                      ? null
+                                      : () async {
+                                          final orders = List<LaundryOrderModel>.from(_filteredReport!['orders'] as List<dynamic>);
+                                          try {
+                                            final bytes = await viewModel.generateExcelBytes(orders);
+                                            if (kIsWeb) {
+                                              saveFileWeb('report_${DateTime.now().millisecondsSinceEpoch}.xlsx', bytes, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                                              _showSnack('Excel download started in browser');
+                                              return;
+                                            }
+
+                                            await _shareTempFile('report_${DateTime.now().millisecondsSinceEpoch}.xlsx', bytes, 'Laporan Excel');
+                                          } catch (e) {
+                                            _showSnack('Export Excel failed: $e');
+                                          }
+                                        },
+                                  child: const Text('Export Excel'),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          if (_filteredReport != null) ...[
+                            const SizedBox(height: 12),
+                            Text('Report: ${_filteredReport!['totalOrders']} orders, Rp ${_filteredReport!['totalRevenue']}'),
+                          ]
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
 
                 const Text(
                   'Menu',
