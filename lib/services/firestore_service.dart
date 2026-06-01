@@ -76,6 +76,18 @@ class FirestoreService {
     }
   }
 
+  Future<void> deleteUser(int userId) async {
+    final snapshot = await _db
+        .collection('users')
+        .where('user_id', isEqualTo: userId)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      await snapshot.docs.first.reference.delete();
+    }
+  }
+
   Future<void> transferOrdersToUser(
     List<int> oldUserIds,
     int newUserId,
