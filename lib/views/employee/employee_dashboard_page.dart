@@ -12,6 +12,7 @@ import '../../viewmodels/employee_dashboard_viewmodel.dart';
 import 'create_order_page.dart';
 import 'update_status_page.dart';
 import 'manage_service_page.dart';
+import 'manage_user_page.dart';
 
 class EmployeeDashboardPage extends StatefulWidget {
   final UserModel user;
@@ -400,6 +401,14 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
                   menuCard(
                     Icons.people,
                     'Manage Users',
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ManageUserPage(),
+                        ),
+                      );
+                    },
                   ),
               ],
             ),
@@ -479,13 +488,15 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
 
   Widget menuCard(
     IconData icon,
-    String title,
-  ) {
+    String title, {
+    VoidCallback? onTap,
+  }) {
     return Card(
       child: ListTile(
         leading: Icon(icon),
         title: Text(title),
         trailing: const Icon(Icons.arrow_forward_ios),
+        onTap: onTap,
       ),
     );
   }
