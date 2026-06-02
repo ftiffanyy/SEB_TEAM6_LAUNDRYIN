@@ -99,7 +99,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Daftar LaundryIn',
+                    'Sign Up for LaundryIn',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -107,7 +107,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Buat akun menggunakan username, password, dan nomor telepon.',
+                    'Create an account using a username, password, and phone number.',
                     style: TextStyle(color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),
@@ -115,7 +115,7 @@ class _SignupPageState extends State<SignupPage> {
                   TextFormField(
                     controller: nameController,
                     decoration: InputDecoration(
-                      labelText: 'Nama Lengkap',
+                      labelText: 'Full Name',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -150,7 +150,7 @@ class _SignupPageState extends State<SignupPage> {
                     controller: phoneController,
                     keyboardType: TextInputType.phone,
                     decoration: InputDecoration(
-                      labelText: 'Nomor Telepon',
+                      labelText: 'Phone Number',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -161,7 +161,7 @@ class _SignupPageState extends State<SignupPage> {
                   TextFormField(
                     controller: addressController,
                     decoration: InputDecoration(
-                      labelText: 'Alamat (opsional)',
+                      labelText: 'Address (optional)',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -182,13 +182,13 @@ class _SignupPageState extends State<SignupPage> {
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: Text(isLoading ? 'Loading...' : 'Daftar'),
+                      child: Text(isLoading ? 'Loading...' : 'Sign Up'),
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: isLoading ? null : () => Navigator.pop(context),
-                    child: const Text('Sudah punya akun? Login'),
+                    child: const Text('Already have an account? Login'),
                   ),
                 ],
               ),
