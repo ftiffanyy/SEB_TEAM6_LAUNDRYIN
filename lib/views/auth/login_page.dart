@@ -36,7 +36,7 @@ class _LoginPageState extends State<LoginPage> {
       if (user == null) {
         setState(() {
           isLoading = false;
-          errorMessage = 'Username atau password salah';
+          errorMessage = 'Incorrect username or password';
         });
         return;
       }
@@ -164,7 +164,7 @@ class _LoginPageState extends State<LoginPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Belum punya akun?'),
+                  const Text("Don't have an account? "),
                   TextButton(
                     onPressed: () {
                       Navigator.push(
@@ -174,7 +174,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       );
                     },
-                    child: const Text('Daftar'),
+                    child: const Text('Sign Up'),
                   ),
                 ],
               ),
