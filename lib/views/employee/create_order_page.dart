@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../models/service_model.dart';
 import '../../viewmodels/create_order_viewmodel.dart';
+import 'payment_page.dart';
 
 class CreateOrderPage extends StatefulWidget {
   final UserModel employee;
@@ -50,9 +51,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       case 1:
         return 10000;
       case 2:
-        return 25000; // 10k + 15k
+        return 25000;
       case 3:
-        return 25000; // 10k + 15k
+        return 25000;
       case 4:
         return 5000;
       case 5:
@@ -102,6 +103,11 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       return;
     }
 
+    if (totalAmountController.text.trim().isEmpty) {
+      setState(() => message = 'Total amount belum muncul');
+      return;
+    }
+
     setState(() {
       isSaving = true;
       message = '';
@@ -111,6 +117,14 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       UserModel customer;
 
       if (addNewCustomer) {
+        if (newCustomerPhoneController.text.trim().isEmpty) {
+          setState(() {
+            isSaving = false;
+            message = 'Isi nomor telepon customer baru';
+          });
+          return;
+        }
+
         customer = await viewModel.findOrCreateCustomer(
           name: customerSearchController.text.trim(),
           rawPhone: newCustomerPhoneController.text.trim(),
@@ -124,7 +138,27 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
           });
           return;
         }
+
         customer = selectedCustomer!;
+      }
+
+      final paymentSuccess = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaymentPage(
+            customerName: customer.name,
+            serviceName: selectedService!.serviceName,
+            totalAmount: int.parse(totalAmountController.text),
+          ),
+        ),
+      );
+
+      if (paymentSuccess != true) {
+        setState(() {
+          isSaving = false;
+          message = 'Payment failed. Order was not created.';
+        });
+        return;
       }
 
       await viewModel.createOrder(
@@ -337,7 +371,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: Text(isSaving ? 'Saving...' : 'Create Order'),
+                  child: Text(isSaving ? 'Processing...' : 'Create Order'),
                 ),
 
                 if (message.isNotEmpty) ...[
@@ -347,7 +381,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color:
-                          message.startsWith('Error') ? Colors.red : Colors.green,
+                          message.startsWith('Error') || message.contains('failed')
+                              ? Colors.red
+                              : Colors.green,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
