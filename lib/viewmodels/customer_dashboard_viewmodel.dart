@@ -1,16 +1,17 @@
 import '../models/laundry_order_model.dart';
 import '../models/order_detail_model.dart';
 import '../services/firestore_service.dart';
-import '../models/service_model.dart'; // Pastikan import ini ada
+import '../models/service_model.dart';
 
 class CustomerOrderItem {
   final LaundryOrderModel order;
   final String serviceName;
-  // pricePerKg sudah dihapus dari sini
+  final int estimatedDays;
 
   CustomerOrderItem({
     required this.order,
     required this.serviceName,
+    required this.estimatedDays,
   });
 }
 
@@ -40,7 +41,6 @@ class CustomerDashboardViewModel {
         ),
       );
 
-      // Perbaikan Null Safety: Mengembalikan dummy model tanpa variabel harga
       final service = services.firstWhere(
         (s) => s.serviceId == detail.serviceId,
         orElse: () => ServiceModel(
@@ -55,7 +55,7 @@ class CustomerDashboardViewModel {
       items.add(CustomerOrderItem(
         order: order,
         serviceName: service.serviceName,
-        // pricePerKg sudah dihapus dari sini
+        estimatedDays: service.estimatedDays,
       ));
     }
 

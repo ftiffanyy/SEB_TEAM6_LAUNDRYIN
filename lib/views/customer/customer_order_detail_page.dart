@@ -26,11 +26,9 @@ class CustomerOrderDetailPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // ── Status banner ───────────────────────────────────────────────
           _buildStatusBanner(order.status),
           const SizedBox(height: 20),
 
-          // ── Order info card ─────────────────────────────────────────────
           _buildSectionLabel('Order Info'),
           const SizedBox(height: 10),
           _buildCard([
@@ -42,33 +40,45 @@ class CustomerOrderDetailPage extends StatelessWidget {
           ]),
           const SizedBox(height: 20),
 
-          // ── Service detail card ─────────────────────────────────────────
           _buildSectionLabel('Service Details'),
           const SizedBox(height: 10),
           _buildCard([
             _buildRow(Icons.local_laundry_service, 'Service', item.serviceName),
             _buildDivider(),
-            _buildRow(Icons.monitor_weight_outlined, 'Weight', '${order.totalWeight} kg'),
-            // Bagian Price per kg sudah dihapus dari sini
+            _buildRow(
+              Icons.monitor_weight_outlined,
+              'Weight',
+              '${order.totalWeight} kg',
+            ),
+            _buildDivider(),
+            _buildRow(
+              Icons.schedule,
+              'Estimated',
+              item.estimatedDays == 0
+                  ? '-'
+                  : '${item.estimatedDays} day${item.estimatedDays > 1 ? 's' : ''}',
+            ),
           ]),
           const SizedBox(height: 20),
 
-          // ── Notes card ──────────────────────────────────────────────────
           if (order.notes.isNotEmpty) ...[
             _buildSectionLabel('Notes'),
             const SizedBox(height: 10),
             _buildCard([
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.notes, color: Color(0xff4A90E2), size: 20),
+                    const Icon(Icons.notes,
+                        color: Color(0xff4A90E2), size: 20),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Text(
                         order.notes,
-                        style: const TextStyle(fontSize: 14, height: 1.5),
+                        style:
+                            const TextStyle(fontSize: 14, height: 1.5),
                       ),
                     ),
                   ],
@@ -78,7 +88,6 @@ class CustomerOrderDetailPage extends StatelessWidget {
             const SizedBox(height: 20),
           ],
 
-          // ── Total card ──────────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
@@ -111,18 +120,21 @@ class CustomerOrderDetailPage extends StatelessWidget {
     );
   }
 
-  // ─── Status banner ────────────────────────────────────────────────────────
-
   Widget _buildStatusBanner(String status) {
     Color bg;
     Color fg;
     IconData icon;
 
     switch (status.toLowerCase()) {
-      case 'washing':
+      case 'washed':
         bg = const Color(0xffE6F1FB);
         fg = const Color(0xff185FA5);
         icon = Icons.local_laundry_service;
+        break;
+      case 'ironed':
+        bg = const Color(0xffFBEAF0);
+        fg = const Color(0xff993556);
+        icon = Icons.iron;
         break;
       case 'ready':
       case 'ready to pickup':
@@ -136,7 +148,7 @@ class CustomerOrderDetailPage extends StatelessWidget {
         fg = const Color(0xff3B6D11);
         icon = Icons.task_alt;
         break;
-      case 'processing':
+      case 'received':
       default:
         bg = const Color(0xffFAEEDA);
         fg = const Color(0xff854F0B);
@@ -145,15 +157,15 @@ class CustomerOrderDetailPage extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.symmetric(vertical: 24),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         children: [
-          Icon(icon, color: fg, size: 40),
-          const SizedBox(height: 8),
+          Icon(icon, color: fg, size: 44),
+          const SizedBox(height: 10),
           Text(
             status,
             style: TextStyle(
@@ -166,8 +178,6 @@ class CustomerOrderDetailPage extends StatelessWidget {
       ),
     );
   }
-
-  // ─── Helpers ──────────────────────────────────────────────────────────────
 
   Widget _buildSectionLabel(String text) {
     return Text(
@@ -205,8 +215,11 @@ class CustomerOrderDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDivider() =>
-      Divider(height: 1, indent: 50, endIndent: 16, color: Colors.grey.shade200);
+  Widget _buildDivider() => Divider(
+      height: 1,
+      indent: 50,
+      endIndent: 16,
+      color: Colors.grey.shade200);
 
   String _formatRupiah(int amount) {
     return amount.toString().replaceAllMapped(

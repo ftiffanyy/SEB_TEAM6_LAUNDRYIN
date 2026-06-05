@@ -170,6 +170,17 @@ class FirestoreService {
     }
   }
 
+  Future<LaundryOrderModel?> getOrderByCode(String orderCode) async {
+    final snapshot = await _db
+        .collection('laundry_orders')
+        .where('order_code', isEqualTo: orderCode.trim().toUpperCase())
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) return null;
+    return LaundryOrderModel.fromFirestore(snapshot.docs.first.data());
+  }
+
   // =========================
   // ORDER DETAILS
   // =========================
