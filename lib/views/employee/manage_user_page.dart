@@ -13,11 +13,25 @@ class ManageUserPage extends StatefulWidget {
 class _ManageUserPageState extends State<ManageUserPage> {
   final ManageUserViewModel viewModel = ManageUserViewModel();
   late Future<List<UserModel>> _usersFuture;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _selectedRoleFilter = 'All'; // Filter role aktif
 
   @override
   void initState() {
     super.initState();
     _loadUsers();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _loadUsers() {
@@ -34,6 +48,23 @@ class _ManageUserPageState extends State<ManageUserPage> {
         backgroundColor: color,
       ),
     );
+  }
+
+  List<UserModel> _filterUsers(List<UserModel> users) {
+    return users.where((user) {
+      // Filter by search query
+      final matchesSearch = _searchQuery.isEmpty ||
+          user.name.toLowerCase().contains(_searchQuery) ||
+          (user.username?.toLowerCase().contains(_searchQuery) ?? false) ||
+          user.phone.toLowerCase().contains(_searchQuery) ||
+          user.role.toLowerCase().contains(_searchQuery);
+
+      // Filter by role
+      final matchesRole = _selectedRoleFilter == 'All' ||
+          user.role == _selectedRoleFilter;
+
+      return matchesSearch && matchesRole;
+    }).toList();
   }
 
   Future<void> _showUserForm({UserModel? user}) async {
@@ -211,65 +242,139 @@ class _ManageUserPageState extends State<ManageUserPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: FutureBuilder<List<UserModel>>(
-          future: _usersFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            }
-
-            final users = snapshot.data ?? [];
-
-            if (users.isEmpty) {
-              return const Center(child: Text('Belum ada user. Tambah user baru untuk memulai.'));
-            }
-
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  DataTable(
-                    columnSpacing: 12,
-                    headingRowColor: WidgetStateColor.resolveWith(
-                        (states) => const Color(0xfff0f4ff)),
-                    columns: const [
-                      DataColumn(label: Text('Nama')),
-                      DataColumn(label: Text('Username')),
-                      DataColumn(label: Text('Telepon')),
-                      DataColumn(label: Text('Role')),
-                      DataColumn(label: Text('Aksi')),
-                    ],
-                    rows: users.map((user) {
-                      return DataRow(cells: [
-                        DataCell(Text(user.name)),
-                        DataCell(Text(user.username ?? '-')),
-                        DataCell(Text(user.phone)),
-                        DataCell(Text(user.role)),
-                        DataCell(Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              tooltip: 'Edit',
-                              onPressed: () => _showUserForm(user: user),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              tooltip: 'Hapus',
-                              onPressed: () => _confirmDelete(user),
-                            ),
-                          ],
-                        )),
-                      ]);
-                    }).toList(),
-                  ),
-                ],
+        child: Column(
+          children: [
+            // Search Bar
+            TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Cari nama, username, telepon, atau role...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
               ),
-            );
-          },
+            ),
+            const SizedBox(height: 12),
+
+            // Role Filter Chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: ['All', 'Customer', 'Cashier', 'Admin'].map((role) {
+                  final isSelected = _selectedRoleFilter == role;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(role),
+                      selected: isSelected,
+                      onSelected: (_) {
+                        setState(() {
+                          _selectedRoleFilter = role;
+                        });
+                      },
+                      selectedColor: const Color(0xff4A90E2).withOpacity(0.2),
+                      checkmarkColor: const Color(0xff4A90E2),
+                      labelStyle: TextStyle(
+                        color: isSelected
+                            ? const Color(0xff4A90E2)
+                            : Colors.black87,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Table
+            Expanded(
+              child: FutureBuilder<List<UserModel>>(
+                future: _usersFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+
+                  final allUsers = snapshot.data ?? [];
+                  final users = _filterUsers(allUsers);
+
+                  if (allUsers.isEmpty) {
+                    return const Center(
+                      child: Text(
+                          'Belum ada user. Tambah user baru untuk memulai.'),
+                    );
+                  }
+
+                  if (users.isEmpty) {
+                    return const Center(
+                      child: Text(
+                          'Tidak ada user yang cocok dengan pencarian.'),
+                    );
+                  }
+
+                  return SingleChildScrollView(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columnSpacing: 12,
+                        headingRowColor: WidgetStateColor.resolveWith(
+                            (states) => const Color(0xfff0f4ff)),
+                        columns: const [
+                          DataColumn(label: Text('Nama')),
+                          DataColumn(label: Text('Username')),
+                          DataColumn(label: Text('Telepon')),
+                          DataColumn(label: Text('Role')),
+                          DataColumn(label: Text('Aksi')),
+                        ],
+                        rows: users.map((user) {
+                          return DataRow(cells: [
+                            DataCell(Text(user.name)),
+                            DataCell(Text(user.username ?? '-')),
+                            DataCell(Text(user.phone)),
+                            DataCell(Text(user.role)),
+                            DataCell(Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit,
+                                      color: Colors.blue),
+                                  tooltip: 'Edit',
+                                  onPressed: () => _showUserForm(user: user),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
+                                  tooltip: 'Hapus',
+                                  onPressed: () => _confirmDelete(user),
+                                ),
+                              ],
+                            )),
+                          ]);
+                        }).toList(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
