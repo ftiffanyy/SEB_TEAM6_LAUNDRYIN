@@ -23,6 +23,7 @@ class ManageServiceViewModel {
   Future<void> addService({
     required String serviceName,
     required int estimatedDays,
+    required int servicePrice,
     required String description,
   }) async {
     final serviceId = await getNextServiceId();
@@ -31,6 +32,7 @@ class ManageServiceViewModel {
       serviceId: serviceId,
       serviceName: serviceName,
       estimatedDays: estimatedDays,
+      servicePrice: servicePrice,
       description: description,
       isActive: true,
     );
@@ -47,6 +49,7 @@ class ManageServiceViewModel {
       serviceId: service.serviceId,
       serviceName: service.serviceName,
       estimatedDays: service.estimatedDays,
+      servicePrice: service.servicePrice,
       description: service.description,
       isActive: !service.isActive,
     );

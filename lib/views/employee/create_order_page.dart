@@ -46,31 +46,17 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     });
   }
 
-  int getPricePerKg(int serviceId) {
-    switch (serviceId) {
-      case 1:
-        return 10000;
-      case 2:
-        return 25000;
-      case 3:
-        return 25000;
-      case 4:
-        return 5000;
-      case 5:
-        return 15000;
-      default:
-        return 0;
-    }
-  }
-
   void calculateTotalAmount() {
-    if (selectedService == null || weightController.text.isEmpty) {
+    if (selectedService == null || weightController.text.trim().isEmpty) {
       totalAmountController.text = '';
       return;
     }
 
-    final weight = int.tryParse(weightController.text) ?? 0;
-    final pricePerKg = getPricePerKg(selectedService!.serviceId);
+    final weight = int.tryParse(weightController.text.trim()) ?? 0;
+
+    // Harga diambil dari field service_price di Firestore
+    final pricePerKg = selectedService!.servicePrice;
+
     final total = weight * pricePerKg;
 
     totalAmountController.text = total.toString();
@@ -233,8 +219,10 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   children: [
                     const Text(
                       'Customer Information',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 14),
 
@@ -303,8 +291,10 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   children: [
                     const Text(
                       'Order Detail',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 14),
 
@@ -319,7 +309,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       items: services.map((service) {
                         return DropdownMenuItem(
                           value: service,
-                          child: Text(service.serviceName),
+                          child: Text(
+                            '${service.serviceName} - Rp ${service.servicePrice}',
+                          ),
                         );
                       }).toList(),
                       onChanged: (value) {
@@ -332,7 +324,11 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
 
                     const SizedBox(height: 14),
 
-                    inputField(weightController, 'Weight (kg)', Icons.scale),
+                    inputField(
+                      weightController,
+                      'Weight (kg)',
+                      Icons.scale,
+                    ),
 
                     TextField(
                       controller: totalAmountController,
@@ -380,10 +376,10 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                     message,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color:
-                          message.startsWith('Error') || message.contains('failed')
-                              ? Colors.red
-                              : Colors.green,
+                      color: message.startsWith('Error') ||
+                              message.contains('failed')
+                          ? Colors.red
+                          : Colors.green,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
