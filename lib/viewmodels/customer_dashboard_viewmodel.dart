@@ -7,11 +7,13 @@ class CustomerOrderItem {
   final LaundryOrderModel order;
   final String serviceName;
   final int estimatedDays;
+  final int servicePrice;
 
   CustomerOrderItem({
     required this.order,
     required this.serviceName,
     required this.estimatedDays,
+    required this.servicePrice,
   });
 }
 
@@ -47,6 +49,7 @@ class CustomerDashboardViewModel {
           serviceId: 0,
           serviceName: 'Unknown Service',
           estimatedDays: 0,
+          servicePrice: 0,
           description: 'No description',
           isActive: false,
         ),
@@ -56,6 +59,7 @@ class CustomerDashboardViewModel {
         order: order,
         serviceName: service.serviceName,
         estimatedDays: service.estimatedDays,
+        servicePrice: service.servicePrice,
       ));
     }
 

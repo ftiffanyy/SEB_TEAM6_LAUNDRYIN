@@ -52,6 +52,14 @@ class CustomerOrderDetailPage extends StatelessWidget {
             ),
             _buildDivider(),
             _buildRow(
+              Icons.payments_outlined,
+              'Price per kg',
+              item.servicePrice == 0
+                  ? '-'
+                  : 'Rp ${_formatRupiah(item.servicePrice)}',
+            ),
+            _buildDivider(),
+            _buildRow(
               Icons.schedule,
               'Estimated',
               item.estimatedDays == 0
@@ -77,8 +85,7 @@ class CustomerOrderDetailPage extends StatelessWidget {
                     Expanded(
                       child: Text(
                         order.notes,
-                        style:
-                            const TextStyle(fontSize: 14, height: 1.5),
+                        style: const TextStyle(fontSize: 14, height: 1.5),
                       ),
                     ),
                   ],

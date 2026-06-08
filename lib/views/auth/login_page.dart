@@ -202,6 +202,7 @@ class _LoginPageState extends State<LoginPage>
           serviceId: 0,
           serviceName: 'Unknown Service',
           estimatedDays: 0,
+          servicePrice: 0,
           description: 'No description',
           isActive: false,
         ),
@@ -215,6 +216,7 @@ class _LoginPageState extends State<LoginPage>
         order: order,
         serviceName: service.serviceName,
         estimatedDays: service.estimatedDays,
+        servicePrice: service.servicePrice,
       );
 
       Navigator.push(
