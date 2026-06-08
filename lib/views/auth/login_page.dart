@@ -3,6 +3,7 @@ import '../../viewmodels/login_viewmodel.dart';
 import '../../viewmodels/signup_viewmodel.dart';
 import '../../viewmodels/customer_dashboard_viewmodel.dart';
 import '../../services/firestore_service.dart';
+import '../../services/notification_service.dart'; // IMPORT NOTIFICATION SERVICE
 import '../../models/order_detail_model.dart';
 import '../../models/service_model.dart';
 import '../customer/customer_dashboard_page.dart';
@@ -101,6 +102,11 @@ class _LoginPageState extends State<LoginPage>
         return;
       }
 
+      // ── SIMPAN FCM TOKEN SETELAH LOGIN SUKSES ──
+      if (user.role == 'Customer') {
+        await NotificationService().saveDeviceToken(user.userId.toString());
+      }
+
       setState(() => isLoadingLogin = false);
 
       Navigator.pushReplacement(
@@ -141,6 +147,9 @@ class _LoginPageState extends State<LoginPage>
       );
 
       if (!mounted) return;
+
+      // ── SIMPAN FCM TOKEN SETELAH REGISTER SUKSES ──
+      await NotificationService().saveDeviceToken(user.userId.toString());
 
       Navigator.pushReplacement(
         context,

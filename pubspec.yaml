@@ -43,6 +43,7 @@ dependencies:
   pdf: ^3.10.1
   printing: ^5.14.2
   excel: ^2.0.0
+  firebase_messaging: ^16.3.0
 
 dev_dependencies:
   flutter_test:
