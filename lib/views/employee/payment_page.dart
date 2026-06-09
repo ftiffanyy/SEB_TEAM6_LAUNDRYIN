@@ -35,7 +35,12 @@ class _PaymentPageState extends State<PaymentPage> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                Navigator.pop(context, isSuccess);
+
+                if (isSuccess && selectedMethod != null) {
+                  Navigator.pop(context, selectedMethod);
+                } else {
+                  Navigator.pop(context, null);
+                }
               },
               child: const Text('OK'),
             ),
@@ -137,22 +142,24 @@ class _PaymentPageState extends State<PaymentPage> {
               children: [
                 Icon(Icons.payments, color: Colors.white, size: 42),
                 SizedBox(width: 14),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Payment Process',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Payment Process',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Complete customer payment',
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                  ],
+                      Text(
+                        'Complete customer payment',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -198,8 +205,8 @@ class _PaymentPageState extends State<PaymentPage> {
 
           const SizedBox(height: 12),
 
-          paymentMethodCard('Credit Card', Icons.credit_card),
           paymentMethodCard('Debit Card', Icons.payment),
+          paymentMethodCard('Credit Card', Icons.credit_card),
           paymentMethodCard('QRIS', Icons.qr_code),
 
           if (showQr)

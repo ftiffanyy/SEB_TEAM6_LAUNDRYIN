@@ -8,6 +8,7 @@ class LaundryOrderModel {
   final Timestamp orderDate;
   final int totalWeight;
   final int totalAmount;
+  final String paymentMethod;
   final String notes;
   final String status;
 
@@ -19,6 +20,7 @@ class LaundryOrderModel {
     required this.orderDate,
     required this.totalWeight,
     required this.totalAmount,
+    required this.paymentMethod,
     required this.notes,
     required this.status,
   });
@@ -32,6 +34,7 @@ class LaundryOrderModel {
       orderDate: data['order_date'] ?? Timestamp.now(),
       totalWeight: data['total_weight'] ?? 0,
       totalAmount: data['total_amount'] ?? 0,
+      paymentMethod: data['payment_method'] ?? '',
       notes: data['notes'] ?? '',
       status: data['status'] ?? '',
     );
@@ -46,6 +49,7 @@ class LaundryOrderModel {
       'order_date': orderDate,
       'total_weight': totalWeight,
       'total_amount': totalAmount,
+      'payment_method': paymentMethod,
       'notes': notes,
       'status': status,
     };

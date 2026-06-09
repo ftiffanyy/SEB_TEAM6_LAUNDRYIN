@@ -53,10 +53,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     }
 
     final weight = int.tryParse(weightController.text.trim()) ?? 0;
-
-    // Harga diambil dari field service_price di Firestore
     final pricePerKg = selectedService!.servicePrice;
-
     final total = weight * pricePerKg;
 
     totalAmountController.text = total.toString();
@@ -128,7 +125,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
         customer = selectedCustomer!;
       }
 
-      final paymentSuccess = await Navigator.push(
+      final paymentMethod = await Navigator.push<String>(
         context,
         MaterialPageRoute(
           builder: (_) => PaymentPage(
@@ -139,7 +136,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
         ),
       );
 
-      if (paymentSuccess != true) {
+      if (!mounted) return;
+
+      if (paymentMethod == null || paymentMethod.isEmpty) {
         setState(() {
           isSaving = false;
           message = 'Payment failed. Order was not created.';
@@ -153,6 +152,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
         service: selectedService!,
         weight: int.parse(weightController.text),
         totalAmount: int.parse(totalAmountController.text),
+        paymentMethod: paymentMethod,
         notes: notesController.text,
       );
 
