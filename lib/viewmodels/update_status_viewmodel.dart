@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/laundry_order_model.dart';
 import '../models/status_history_model.dart';
 import '../services/firestore_service.dart';
+import '../services/notification_service.dart';
 
 class OrderStatusItem {
   final LaundryOrderModel order;
@@ -18,6 +20,7 @@ class OrderStatusItem {
 
 class UpdateStatusViewModel {
   final FirestoreService _firestoreService = FirestoreService();
+  final NotificationService _notificationService = NotificationService();
 
   Future<List<OrderStatusItem>> getOrderStatusItems() async {
     final orders = await _firestoreService.getOrders();
@@ -41,17 +44,13 @@ class UpdateStatusViewModel {
         return detail.orderId == order.orderId;
       }).toList();
 
-      if (customer.isEmpty || detail.isEmpty) {
-        continue;
-      }
+      if (customer.isEmpty || detail.isEmpty) continue;
 
       final service = services.where((service) {
         return service.serviceId == detail.first.serviceId;
       }).toList();
 
-      if (service.isEmpty) {
-        continue;
-      }
+      if (service.isEmpty) continue;
 
       items.add(
         OrderStatusItem(
@@ -68,9 +67,7 @@ class UpdateStatusViewModel {
   Future<int> getNextStatusHistoryId() async {
     final histories = await _firestoreService.getStatusHistories();
 
-    if (histories.isEmpty) {
-      return 1;
-    }
+    if (histories.isEmpty) return 1;
 
     final maxId = histories
         .map((history) => history.statusHistoryId)
@@ -85,13 +82,13 @@ class UpdateStatusViewModel {
     required int changedBy,
     required String notes,
   }) async {
-    await _firestoreService.updateOrderStatus(
-      order.orderId,
-      newStatus,
-    );
+    debugPrint("===== UPDATE STATUS DIPANGGIL =====");
+    debugPrint("Order: ${order.orderCode}");
+    debugPrint("Status Baru: $newStatus");
+
+    await _firestoreService.updateOrderStatus(order.orderId, newStatus);
 
     final statusHistoryId = await getNextStatusHistoryId();
-
     final history = StatusHistoryModel(
       statusHistoryId: statusHistoryId,
       orderId: order.orderId,
@@ -100,7 +97,34 @@ class UpdateStatusViewModel {
       changedAt: Timestamp.now(),
       status: newStatus,
     );
-
     await _firestoreService.addStatusHistory(history);
+
+    try {
+      final users = await _firestoreService.getUsers();
+      final customer = users.firstWhere(
+        (u) => u.userId == order.userId,
+        orElse: () => throw Exception('Customer not found'),
+      );
+
+      debugPrint("===== CUSTOMER DATA =====");
+      debugPrint("Customer: ${customer.name}");
+      debugPrint("User ID: ${customer.userId}");
+      debugPrint("FCM Token: ${customer.fcmToken}");
+
+
+      if (customer.fcmToken != null && customer.fcmToken!.isNotEmpty) {
+        debugPrint("TOKEN ADA, AKAN KIRIM NOTIF");
+
+        await _notificationService.sendStatusNotification(
+          fcmToken: customer.fcmToken!,
+          orderCode: order.orderCode,
+          newStatus: newStatus,
+        );
+      } else {
+        debugPrint("TOKEN TIDAK ADA, LEWATI NOTIF");
+      }
+    } catch (e) {
+      debugPrint('Gagal kirim notifikasi: $e');
+    }
   }
 }
