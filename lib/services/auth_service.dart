@@ -61,16 +61,18 @@ class AuthService {
 
       if (passwordIsNull) {
         // User di-reset oleh admin atau belum fully registered
-        // Cek apakah username yang diberikan sesuai dengan yang terdaftar
-        if (existingByPhone.username != null && 
-            existingByPhone.username!.isNotEmpty &&
-            existingByPhone.username != trimmedUsername) {
-          throw AuthException(
-              'Username tidak sesuai dengan nomor telepon yang terdaftar. '
-              'Silakan gunakan username: ${existingByPhone.username}');
+        // Izinkan update dengan username baru (jika username baru tidak terpakai)
+        if (trimmedUsername != existingByPhone.username) {
+          // Username berbeda dari sebelumnya, cek apakah username baru sudah digunakan
+          final newUsernameExists = 
+              await _firestoreService.getUserByUsername(trimmedUsername);
+          if (newUsernameExists != null && newUsernameExists.userId != existingByPhone.userId) {
+            throw AuthException(
+                'Username sudah digunakan oleh pengguna lain. Silakan pilih username lain.');
+          }
         }
 
-        // Upgrade dengan password baru
+        // Upgrade dengan password baru dan data terbaru
         final upgraded = UserModel(
           userId: existingByPhone.userId,
           name: name.trim(),

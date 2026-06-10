@@ -207,7 +207,7 @@ class _ManageUserPageState extends State<ManageUserPage> {
           content: Text(
             'Apakah Anda yakin ingin mereset password untuk ${user.name}?\n\n'
             'User akan tidak bisa login dan harus melakukan registrasi ulang dengan '
-            'username dan nomor telepon yang sama untuk membuat password baru.',
+            'username (${user.username}) dan nomor telepon (${user.phone}) yang sama untuk membuat password baru.',
           ),
           actions: [
             TextButton(
@@ -317,50 +317,60 @@ class _ManageUserPageState extends State<ManageUserPage> {
                     return Center(child: Text('Error: ${snapshot.error}'));
                   }
 
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  DataTable(
-                    columnSpacing: 12,
-                    headingRowColor: WidgetStateColor.resolveWith(
-                        (states) => const Color(0xfff0f4ff)),
-                    columns: const [
-                      DataColumn(label: Text('Nama')),
-                      DataColumn(label: Text('Username')),
-                      DataColumn(label: Text('Telepon')),
-                      DataColumn(label: Text('Role')),
-                      DataColumn(label: Text('Aksi')),
-                    ],
-                    rows: users.map((user) {
-                      return DataRow(cells: [
-                        DataCell(Text(user.name)),
-                        DataCell(Text(user.username ?? '-')),
-                        DataCell(Text(user.phone)),
-                        DataCell(Text(user.role)),
-                        DataCell(Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              tooltip: 'Edit',
-                              onPressed: () => _showUserForm(user: user),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.lock_reset, color: Colors.orange),
-                              tooltip: 'Reset Password',
-                              onPressed: () => _confirmResetPassword(user),
-                            ),
+                  final allUsers = snapshot.data ?? [];
+                  final users = _filterUsers(allUsers);
+
+                  if (users.isEmpty) {
+                    return const Center(child: Text('Belum ada user. Tambah user baru untuk memulai.'));
+                  }
+
+                  return SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        DataTable(
+                          columnSpacing: 12,
+                          headingRowColor: WidgetStateColor.resolveWith(
+                              (states) => const Color(0xfff0f4ff)),
+                          columns: const [
+                            DataColumn(label: Text('Nama')),
+                            DataColumn(label: Text('Username')),
+                            DataColumn(label: Text('Telepon')),
+                            DataColumn(label: Text('Role')),
+                            DataColumn(label: Text('Aksi')),
                           ],
-                        )),
-                      ]);
-                    }).toList(),
+                          rows: users.map((user) {
+                            return DataRow(cells: [
+                              DataCell(Text(user.name)),
+                              DataCell(Text(user.username ?? '-')),
+                              DataCell(Text(user.phone)),
+                              DataCell(Text(user.role)),
+                              DataCell(Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, color: Colors.blue),
+                                    tooltip: 'Edit',
+                                    onPressed: () => _showUserForm(user: user),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.lock_reset, color: Colors.orange),
+                                    tooltip: 'Reset Password',
+                                    onPressed: () => _confirmResetPassword(user),
+                                  ),
+                                ],
+                              )),
+                            ]);
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  );
+                    },
                   ),
-                ],
-              ),
-            ),
-          ],
+                ),
+            ],
+          ),
         ),
-      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showUserForm(),
         icon: const Icon(Icons.add),
