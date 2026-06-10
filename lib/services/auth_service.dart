@@ -51,7 +51,49 @@ class AuthService {
       throw AuthException('Username tidak boleh kosong.');
     }
 
-    // 3. Cek username sudah dipakai orang lain
+    // 3. Cek phone sudah ada atau belum (PRIORITAS: phone adalah identifier utama)
+    final existingByPhone =
+        await _firestoreService.getUserByPhone(normalizedPhone);
+
+    if (existingByPhone != null) {
+      // Phone sudah ada, cek status password (null = belum login / sudah di-reset)
+      final passwordIsNull = existingByPhone.password == null;
+
+      if (passwordIsNull) {
+        // User di-reset oleh admin atau belum fully registered
+        // Izinkan update dengan username baru (jika username baru tidak terpakai)
+        if (trimmedUsername != existingByPhone.username) {
+          // Username berbeda dari sebelumnya, cek apakah username baru sudah digunakan
+          final newUsernameExists = 
+              await _firestoreService.getUserByUsername(trimmedUsername);
+          if (newUsernameExists != null && newUsernameExists.userId != existingByPhone.userId) {
+            throw AuthException(
+                'Username sudah digunakan oleh pengguna lain. Silakan pilih username lain.');
+          }
+        }
+
+        // Upgrade dengan password baru dan data terbaru
+        final upgraded = UserModel(
+          userId: existingByPhone.userId,
+          name: name.trim(),
+          username: trimmedUsername,
+          password: hashPassword(password.trim()),
+          phone: normalizedPhone,
+          address: address?.trim() ?? existingByPhone.address,
+          fcmToken: existingByPhone.fcmToken,
+          role: existingByPhone.role,
+        );
+
+        await _firestoreService.updateUser(upgraded);
+        return upgraded;
+      } else {
+        // Password sudah ada (sudah fully registered)
+        throw AuthException(
+            'Nomor telepon ini sudah terdaftar. Silakan login.');
+      }
+    }
+
+    // 4. Phone belum ada sama sekali → cek username juga tidak ada
     final existingByUsername =
         await _firestoreService.getUserByUsername(trimmedUsername);
     if (existingByUsername != null) {
@@ -59,37 +101,7 @@ class AuthService {
           'Username sudah digunakan. Silakan pilih username lain.');
     }
 
-    // 4. Cek phone sudah ada atau belum
-    final existingByPhone =
-        await _firestoreService.getUserByPhone(normalizedPhone);
-
-    if (existingByPhone != null) {
-      // Phone sudah ada, cek apakah sudah full registered
-      final sudahRegistered = existingByPhone.username != null &&
-          existingByPhone.username!.isNotEmpty;
-
-      if (sudahRegistered) {
-        throw AuthException(
-            'Nomor telepon ini sudah terdaftar. Silakan login.');
-      }
-
-      // Guest user dari order admin → upgrade ke full account
-      final upgraded = UserModel(
-        userId: existingByPhone.userId,
-        name: name.trim(),
-        username: trimmedUsername,
-        password: hashPassword(password.trim()),
-        phone: normalizedPhone,
-        address: address?.trim() ?? existingByPhone.address,
-        fcmToken: existingByPhone.fcmToken,
-        role: 'Customer',
-      );
-
-      await _firestoreService.updateUser(upgraded);
-      return upgraded;
-    }
-
-    // 5. Phone belum ada sama sekali → buat user baru
+    // 5. Buat user baru
     final nextId = await _firestoreService.getNextUserId();
     final newUser = UserModel(
       userId: nextId,
