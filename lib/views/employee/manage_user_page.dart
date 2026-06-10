@@ -167,22 +167,26 @@ class _ManageUserPageState extends State<ManageUserPage> {
     );
   }
 
-  Future<void> _confirmDelete(UserModel user) async {
+  Future<void> _confirmResetPassword(UserModel user) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Hapus User'),
-          content: Text('Apakah Anda yakin ingin menghapus ${user.name}?'),
+          title: const Text('Reset Password User'),
+          content: Text(
+            'Apakah Anda yakin ingin mereset password untuk ${user.name}?\n\n'
+            'User akan tidak bisa login dan harus melakukan registrasi ulang dengan '
+            'username dan nomor telepon yang sama untuk membuat password baru.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Batal'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Hapus'),
+              child: const Text('Reset Password'),
             ),
           ],
         );
@@ -193,11 +197,11 @@ class _ManageUserPageState extends State<ManageUserPage> {
 
     if (confirm == true) {
       try {
-        await viewModel.deleteUser(user.userId);
-        _showSnack('User berhasil dihapus.');
+        await viewModel.resetUserPassword(user.userId);
+        _showSnack('Password user berhasil direset.');
         _loadUsers();
       } catch (e) {
-        _showSnack('Gagal menghapus user: $e', color: Colors.red);
+        _showSnack('Gagal reset password: $e', color: Colors.red);
       }
     }
   }
@@ -257,9 +261,9 @@ class _ManageUserPageState extends State<ManageUserPage> {
                               onPressed: () => _showUserForm(user: user),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              tooltip: 'Hapus',
-                              onPressed: () => _confirmDelete(user),
+                              icon: const Icon(Icons.lock_reset, color: Colors.orange),
+                              tooltip: 'Reset Password',
+                              onPressed: () => _confirmResetPassword(user),
                             ),
                           ],
                         )),
