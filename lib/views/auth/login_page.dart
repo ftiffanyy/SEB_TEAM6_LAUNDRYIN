@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+
 import '../../viewmodels/login_viewmodel.dart';
 import '../../viewmodels/signup_viewmodel.dart';
 import '../../viewmodels/customer_dashboard_viewmodel.dart';
 import '../../services/firestore_service.dart';
-import '../../services/notification_service.dart'; // IMPORT NOTIFICATION SERVICE
+import '../../services/notification_service.dart';
 import '../../models/order_detail_model.dart';
 import '../../models/service_model.dart';
 import '../customer/customer_dashboard_page.dart';
@@ -21,12 +22,12 @@ class _LoginPageState extends State<LoginPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // ── Login
+  // Login
   final usernameLoginController = TextEditingController();
   final passwordLoginController = TextEditingController();
   bool _obscureLogin = true;
 
-  // ── Sign Up
+  // Sign Up
   final signupFormKey = GlobalKey<FormState>();
   final nameController = TextEditingController();
   final usernameSignupController = TextEditingController();
@@ -35,7 +36,7 @@ class _LoginPageState extends State<LoginPage>
   final addressController = TextEditingController();
   bool _obscureSignup = true;
 
-  // ── Track Order
+  // Track Order
   final orderCodeController = TextEditingController();
 
   final loginViewModel = LoginViewModel();
@@ -45,6 +46,7 @@ class _LoginPageState extends State<LoginPage>
   bool isLoadingLogin = false;
   bool isLoadingSignup = false;
   bool isLoadingTrack = false;
+
   String loginError = '';
   String signupError = '';
   String trackError = '';
@@ -52,7 +54,9 @@ class _LoginPageState extends State<LoginPage>
   @override
   void initState() {
     super.initState();
+
     _tabController = TabController(length: 3, vsync: this);
+
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
         setState(() {
@@ -78,8 +82,6 @@ class _LoginPageState extends State<LoginPage>
     super.dispose();
   }
 
-  // ── Login logic ────────────────────────────────────────────────────────────
-
   Future<void> _login() async {
     setState(() {
       isLoadingLogin = true;
@@ -102,7 +104,6 @@ class _LoginPageState extends State<LoginPage>
         return;
       }
 
-      // ── SIMPAN FCM TOKEN SETELAH LOGIN SUKSES ──
       if (user.role == 'Customer') {
         await NotificationService().saveDeviceToken(user.userId.toString());
       }
@@ -125,8 +126,6 @@ class _LoginPageState extends State<LoginPage>
     }
   }
 
-  // ── Sign Up logic ──────────────────────────────────────────────────────────
-
   Future<void> _signUp() async {
     if (!signupFormKey.currentState!.validate()) return;
 
@@ -148,7 +147,6 @@ class _LoginPageState extends State<LoginPage>
 
       if (!mounted) return;
 
-      // ── SIMPAN FCM TOKEN SETELAH REGISTER SUKSES ──
       await NotificationService().saveDeviceToken(user.userId.toString());
 
       Navigator.pushReplacement(
@@ -165,10 +163,9 @@ class _LoginPageState extends State<LoginPage>
     }
   }
 
-  // ── Track Order logic ──────────────────────────────────────────────────────
-
   Future<void> _trackOrder() async {
     final code = orderCodeController.text.trim();
+
     if (code.isEmpty) {
       setState(() => trackError = 'Please enter an order code');
       return;
@@ -242,174 +239,160 @@ class _LoginPageState extends State<LoginPage>
     }
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blueGrey.shade50,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Container(
-            width: 380,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  blurRadius: 10,
-                  color: Colors.black.withOpacity(0.08),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ── Header ────────────────────────────────────────────────
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 28),
-                  decoration: const BoxDecoration(
-                    color: Color(0xff4A90E2),
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                  ),
-                  child: const Column(
-                    children: [
-                      Icon(Icons.local_laundry_service,
-                          size: 56, color: Colors.white),
-                      SizedBox(height: 10),
-                      Text(
-                        'LaundryIn',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Laundry Management System',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      backgroundColor: const Color(0xffF4F7FB),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
 
-                // ── Tab Bar ───────────────────────────────────────────────
-                Container(
-                  color: const Color(0xff3A7BD5),
-                  child: TabBar(
-                    controller: _tabController,
-                    indicatorColor: Colors.white,
-                    indicatorWeight: 3,
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white54,
-                    labelStyle: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    tabs: const [
-                      Tab(text: 'Login'),
-                      Tab(text: 'Sign Up'),
-                      Tab(text: 'Track Order'),
-                    ],
-                  ),
+            Container(
+              color: const Color(0xff3A7BD5),
+              child: TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.white,
+                indicatorWeight: 3,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                labelStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
                 ),
-
-                // ── Tab Content ───────────────────────────────────────────
-                SizedBox(
-                  height: 520,
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildLoginTab(),
-                      _buildSignUpTab(),
-                      _buildTrackOrderTab(),
-                    ],
-                  ),
-                ),
-              ],
+                tabs: const [
+                  Tab(text: 'Login'),
+                  Tab(text: 'Sign Up'),
+                  Tab(text: 'Track Order'),
+                ],
+              ),
             ),
-          ),
+
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildLoginTab(),
+                  _buildSignUpTab(),
+                  _buildTrackOrderTab(),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ── Login Tab ──────────────────────────────────────────────────────────────
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 34, horizontal: 24),
+      color: const Color(0xff4A90E2),
+      child: const Column(
+        children: [
+          Icon(
+            Icons.local_laundry_service,
+            size: 58,
+            color: Colors.white,
+          ),
+          SizedBox(height: 10),
+          Text(
+            'LaundryIn',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: 6),
+          Text(
+            'Laundry Management System',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildLoginTab() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+
           TextField(
             controller: usernameLoginController,
-            decoration: InputDecoration(
-              labelText: 'Username',
-              prefixIcon: const Icon(Icons.person_outline),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+            decoration: inputDecoration(
+              label: 'Username',
+              icon: Icons.person_outline,
             ),
           ),
+
           const SizedBox(height: 16),
+
           TextField(
             controller: passwordLoginController,
             obscureText: _obscureLogin,
-            decoration: InputDecoration(
-              labelText: 'Password',
-              prefixIcon: const Icon(Icons.lock_outline),
+            decoration: inputDecoration(
+              label: 'Password',
+              icon: Icons.lock_outline,
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureLogin
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
                 ),
-                onPressed: () =>
-                    setState(() => _obscureLogin = !_obscureLogin),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                onPressed: () {
+                  setState(() {
+                    _obscureLogin = !_obscureLogin;
+                  });
+                },
               ),
             ),
             onSubmitted: (_) => isLoadingLogin ? null : _login(),
           ),
+
           if (loginError.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(
               loginError,
               style: const TextStyle(color: Colors.red, fontSize: 13),
               textAlign: TextAlign.center,
             ),
           ],
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 20),
+
           SizedBox(
-            height: 48,
+            height: 52,
             child: ElevatedButton(
               onPressed: isLoadingLogin ? null : _login,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xff4A90E2),
                 foregroundColor: Colors.white,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
               child: Text(
                 isLoadingLogin ? 'Logging in...' : 'Login',
-                style: const TextStyle(fontSize: 15),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 18),
+
           Center(
             child: TextButton(
               onPressed: () => _tabController.animateTo(1),
@@ -424,113 +407,117 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  // ── Sign Up Tab ────────────────────────────────────────────────────────────
-
   Widget _buildSignUpTab() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(28),
       child: Form(
         key: signupFormKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+
             TextFormField(
               controller: nameController,
-              decoration: InputDecoration(
-                labelText: 'Full Name',
-                prefixIcon: const Icon(Icons.badge_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              decoration: inputDecoration(
+                label: 'Full Name',
+                icon: Icons.badge_outlined,
               ),
               validator: signupViewModel.validateName,
             ),
+
             const SizedBox(height: 14),
+
             TextFormField(
               controller: usernameSignupController,
-              decoration: InputDecoration(
-                labelText: 'Username',
-                prefixIcon: const Icon(Icons.person_outline),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              decoration: inputDecoration(
+                label: 'Username',
+                icon: Icons.person_outline,
               ),
               validator: signupViewModel.validateUsername,
             ),
+
             const SizedBox(height: 14),
+
             TextFormField(
               controller: passwordSignupController,
               obscureText: _obscureSignup,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                prefixIcon: const Icon(Icons.lock_outline),
+              decoration: inputDecoration(
+                label: 'Password',
+                icon: Icons.lock_outline,
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscureSignup
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
                   ),
-                  onPressed: () =>
-                      setState(() => _obscureSignup = !_obscureSignup),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  onPressed: () {
+                    setState(() {
+                      _obscureSignup = !_obscureSignup;
+                    });
+                  },
                 ),
               ),
               validator: signupViewModel.validatePassword,
             ),
+
             const SizedBox(height: 14),
+
             TextFormField(
               controller: phoneController,
               keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: 'Phone Number',
-                prefixIcon: const Icon(Icons.phone_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              decoration: inputDecoration(
+                label: 'Phone Number',
+                icon: Icons.phone_outlined,
               ),
               validator: signupViewModel.validatePhone,
             ),
+
             const SizedBox(height: 14),
+
             TextFormField(
               controller: addressController,
-              decoration: InputDecoration(
-                labelText: 'Address (optional)',
-                prefixIcon: const Icon(Icons.home_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              decoration: inputDecoration(
+                label: 'Address (optional)',
+                icon: Icons.home_outlined,
               ),
             ),
+
             if (signupError.isNotEmpty) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Text(
                 signupError,
                 style: const TextStyle(color: Colors.red, fontSize: 13),
                 textAlign: TextAlign.center,
               ),
             ],
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 20),
+
             SizedBox(
-              height: 48,
+              height: 52,
               child: ElevatedButton(
                 onPressed: isLoadingSignup ? null : _signUp,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff4A90E2),
                   foregroundColor: Colors.white,
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 child: Text(
                   isLoadingSignup ? 'Creating account...' : 'Sign Up',
-                  style: const TextStyle(fontSize: 15),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 18),
+
             Center(
               child: TextButton(
                 onPressed: () => _tabController.animateTo(0),
@@ -546,25 +533,27 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  // ── Track Order Tab ────────────────────────────────────────────────────────
-
   Widget _buildTrackOrderTab() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: const Color(0xffE6F1FB),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: const Row(
               children: [
-                Icon(Icons.info_outline,
-                    color: Color(0xff185FA5), size: 18),
+                Icon(
+                  Icons.info_outline,
+                  color: Color(0xff185FA5),
+                  size: 20,
+                ),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -578,31 +567,33 @@ class _LoginPageState extends State<LoginPage>
               ],
             ),
           ),
+
           const SizedBox(height: 20),
+
           TextField(
             controller: orderCodeController,
             textCapitalization: TextCapitalization.characters,
-            decoration: InputDecoration(
-              labelText: 'Order Code',
-              hintText: 'e.g. ORD-2025-0041',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+            decoration: inputDecoration(
+              label: 'Order Code',
+              icon: Icons.search,
+              hintText: 'e.g. ORD001',
             ),
             onSubmitted: (_) => isLoadingTrack ? null : _trackOrder(),
           ),
+
           if (trackError.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(
               trackError,
               style: const TextStyle(color: Colors.red, fontSize: 13),
               textAlign: TextAlign.center,
             ),
           ],
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 20),
+
           SizedBox(
-            height: 48,
+            height: 52,
             child: ElevatedButton.icon(
               onPressed: isLoadingTrack ? null : _trackOrder,
               icon: isLoadingTrack
@@ -617,18 +608,21 @@ class _LoginPageState extends State<LoginPage>
                   : const Icon(Icons.local_shipping_outlined),
               label: Text(
                 isLoadingTrack ? 'Searching...' : 'Track Order',
-                style: const TextStyle(fontSize: 15),
+                style: const TextStyle(fontSize: 16),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xff4A90E2),
                 foregroundColor: Colors.white,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 20),
+
+          const SizedBox(height: 18),
+
           Center(
             child: TextButton(
               onPressed: () => _tabController.animateTo(0),
@@ -639,6 +633,38 @@ class _LoginPageState extends State<LoginPage>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  InputDecoration inputDecoration({
+    required String label,
+    required IconData icon,
+    String? hintText,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hintText,
+      prefixIcon: Icon(icon),
+      suffixIcon: suffixIcon,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(
+          color: Colors.grey.shade300,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(
+          color: Color(0xff4A90E2),
+          width: 1.5,
+        ),
       ),
     );
   }
