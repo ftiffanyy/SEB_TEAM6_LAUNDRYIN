@@ -29,8 +29,7 @@ class UpdateStatusViewModel {
     final orderDetails = await _firestoreService.getOrderDetails();
 
     final activeOrders = orders.where((order) {
-      return order.status.toLowerCase() != 'completed' &&
-          order.status.toLowerCase() != 'picked up';
+      return order.status.toLowerCase() != 'picked up';
     }).toList();
 
     final List<OrderStatusItem> items = [];
