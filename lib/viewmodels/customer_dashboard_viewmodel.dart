@@ -69,14 +69,13 @@ class CustomerDashboardViewModel {
   List<CustomerOrderItem> getActiveOrders(List<CustomerOrderItem> items) {
     return items.where((item) {
       final s = item.order.status.toLowerCase();
-      return s != 'completed' && s != 'picked up';
+      return s != 'picked up';
     }).toList();
   }
 
   List<CustomerOrderItem> getCompletedOrders(List<CustomerOrderItem> items) {
     return items.where((item) {
-      final s = item.order.status.toLowerCase();
-      return s == 'completed' || s == 'picked up';
+      return item.order.status.toLowerCase() == 'picked up';
     }).toList();
   }
 }
