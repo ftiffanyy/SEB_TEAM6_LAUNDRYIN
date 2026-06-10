@@ -10,6 +10,12 @@ import '../utils/phone_helper.dart';
 class CreateOrderViewModel {
   final FirestoreService _firestoreService = FirestoreService();
 
+  final List<String> allowedPaymentMethods = [
+    'Debit Card',
+    'Credit Card',
+    'QRIS',
+  ];
+
   Future<List<UserModel>> getCustomers() async {
     final users = await _firestoreService.getUsers();
     return users.where((user) => user.role == 'Customer').toList();
@@ -46,18 +52,17 @@ class CreateOrderViewModel {
     required String rawPhone,
     required String name,
   }) async {
-    // 1. Normalize & validasi phone
     final normalizedPhone = PhoneHelper.normalize(rawPhone);
+
     if (normalizedPhone.isEmpty) {
       throw Exception('Nomor telepon tidak valid: $rawPhone');
     }
 
-    // 2. Cek apakah phone sudah terdaftar
     final existing = await _firestoreService.getUserByPhone(normalizedPhone);
     if (existing != null) return existing;
 
-    // 3. Belum ada → buat guest user baru
     final newId = await getNextUserId();
+
     final guest = UserModel(
       userId: newId,
       name: name.trim(),
@@ -79,8 +84,13 @@ class CreateOrderViewModel {
     required ServiceModel service,
     required int weight,
     required int totalAmount,
+    required String paymentMethod,
     required String notes,
   }) async {
+    if (!allowedPaymentMethods.contains(paymentMethod)) {
+      throw Exception('Payment method tidak valid');
+    }
+
     final orderId = await getNextOrderId();
     final orderCode = 'ORD${orderId.toString().padLeft(3, '0')}';
 
@@ -92,6 +102,7 @@ class CreateOrderViewModel {
       orderDate: Timestamp.now(),
       totalWeight: weight,
       totalAmount: totalAmount,
+      paymentMethod: paymentMethod,
       notes: notes,
       status: 'Received',
     );
