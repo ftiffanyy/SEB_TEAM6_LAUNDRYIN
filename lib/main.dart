@@ -1,16 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'firebase_options.dart';
 import 'services/firestore_service.dart';
+import 'services/notification_service.dart';
 import 'views/auth/login_page.dart';
+
+// Top-level function wajib untuk menangani notifikasi saat aplikasi di background
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  debugPrint("Handling a background message: ${message.messageId}");
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Inisialisasi Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Daftarkan background handler FCM
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Inisialisasi Notification Service (FCM & Local Notifications)
+  // UBAH BAGIAN INI: Dari initialize() menjadi initNotifications()
+  await NotificationService().initNotifications(); 
 
   runApp(const MyApp());
 }

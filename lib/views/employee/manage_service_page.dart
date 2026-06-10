@@ -15,6 +15,7 @@ class _ManageServicePageState extends State<ManageServicePage> {
 
   final serviceNameController = TextEditingController();
   final estimatedDaysController = TextEditingController();
+  final servicePriceController = TextEditingController();
   final descriptionController = TextEditingController();
 
   List<ServiceModel> services = [];
@@ -45,10 +46,12 @@ class _ManageServicePageState extends State<ManageServicePage> {
     if (service != null) {
       serviceNameController.text = service.serviceName;
       estimatedDaysController.text = service.estimatedDays.toString();
+      servicePriceController.text = service.servicePrice.toString();
       descriptionController.text = service.description;
     } else {
       serviceNameController.clear();
       estimatedDaysController.clear();
+      servicePriceController.clear();
       descriptionController.clear();
     }
 
@@ -65,9 +68,27 @@ class _ManageServicePageState extends State<ManageServicePage> {
   Future<void> saveService() async {
     if (serviceNameController.text.trim().isEmpty ||
         estimatedDaysController.text.trim().isEmpty ||
+        servicePriceController.text.trim().isEmpty ||
         descriptionController.text.trim().isEmpty) {
       setState(() {
         message = 'Semua field harus diisi';
+      });
+      return;
+    }
+
+    final estimatedDays = int.tryParse(estimatedDaysController.text.trim());
+    final servicePrice = int.tryParse(servicePriceController.text.trim());
+
+    if (estimatedDays == null) {
+      setState(() {
+        message = 'Estimated days harus berupa angka';
+      });
+      return;
+    }
+
+    if (servicePrice == null) {
+      setState(() {
+        message = 'Service price harus berupa angka';
       });
       return;
     }
@@ -81,14 +102,16 @@ class _ManageServicePageState extends State<ManageServicePage> {
       if (editingService == null) {
         await viewModel.addService(
           serviceName: serviceNameController.text.trim(),
-          estimatedDays: int.parse(estimatedDaysController.text.trim()),
+          estimatedDays: estimatedDays,
+          servicePrice: servicePrice,
           description: descriptionController.text.trim(),
         );
       } else {
         final updatedService = ServiceModel(
           serviceId: editingService!.serviceId,
           serviceName: serviceNameController.text.trim(),
-          estimatedDays: int.parse(estimatedDaysController.text.trim()),
+          estimatedDays: estimatedDays,
+          servicePrice: servicePrice,
           description: descriptionController.text.trim(),
           isActive: editingService!.isActive,
         );
@@ -104,6 +127,12 @@ class _ManageServicePageState extends State<ManageServicePage> {
       });
 
       Navigator.pop(context);
+
+      serviceNameController.clear();
+      estimatedDaysController.clear();
+      servicePriceController.clear();
+      descriptionController.clear();
+      editingService = null;
 
       await loadServices();
     } catch (e) {
@@ -123,6 +152,7 @@ class _ManageServicePageState extends State<ManageServicePage> {
   void dispose() {
     serviceNameController.dispose();
     estimatedDaysController.dispose();
+    servicePriceController.dispose();
     descriptionController.dispose();
     super.dispose();
   }
@@ -171,8 +201,7 @@ class _ManageServicePageState extends State<ManageServicePage> {
                 sectionTitle('Active Services'),
                 const SizedBox(height: 10),
 
-                if (activeServices.isEmpty)
-                  emptyText('No active services'),
+                if (activeServices.isEmpty) emptyText('No active services'),
 
                 ...activeServices.map((service) {
                   return serviceCard(service);
@@ -183,8 +212,7 @@ class _ManageServicePageState extends State<ManageServicePage> {
                 sectionTitle('Inactive Services'),
                 const SizedBox(height: 10),
 
-                if (inactiveServices.isEmpty)
-                  emptyText('No inactive services'),
+                if (inactiveServices.isEmpty) emptyText('No inactive services'),
 
                 ...inactiveServices.map((service) {
                   return serviceCard(service);
@@ -279,9 +307,7 @@ class _ManageServicePageState extends State<ManageServicePage> {
               service.isActive ? const Color(0xffEAF3FF) : Colors.grey.shade200,
           child: Icon(
             Icons.cleaning_services,
-            color: service.isActive
-                ? const Color(0xff4A90E2)
-                : Colors.grey,
+            color: service.isActive ? const Color(0xff4A90E2) : Colors.grey,
           ),
         ),
         title: Text(
@@ -289,7 +315,9 @@ class _ManageServicePageState extends State<ManageServicePage> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          '${service.estimatedDays} day(s)\n${service.description}',
+          'Rp ${service.servicePrice}\n'
+          '${service.estimatedDays} day(s)\n'
+          '${service.description}',
         ),
         isThreeLine: true,
         trailing: PopupMenuButton<String>(
@@ -356,6 +384,12 @@ class _ManageServicePageState extends State<ManageServicePage> {
               controller: estimatedDaysController,
               label: 'Estimated Days',
               icon: Icons.calendar_today,
+            ),
+
+            inputField(
+              controller: servicePriceController,
+              label: 'Service Price',
+              icon: Icons.payments,
             ),
 
             inputField(
