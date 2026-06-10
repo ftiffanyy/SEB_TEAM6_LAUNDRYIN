@@ -76,7 +76,7 @@ class FirestoreService {
     }
   }
 
-  Future<void> deleteUser(int userId) async {
+  Future<void> resetUserPassword(int userId) async {
     final snapshot = await _db
         .collection('users')
         .where('user_id', isEqualTo: userId)
@@ -84,7 +84,9 @@ class FirestoreService {
         .get();
 
     if (snapshot.docs.isNotEmpty) {
-      await snapshot.docs.first.reference.delete();
+      await snapshot.docs.first.reference.update({
+        'password': null,
+      });
     }
   }
 

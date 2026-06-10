@@ -198,22 +198,26 @@ class _ManageUserPageState extends State<ManageUserPage> {
     );
   }
 
-  Future<void> _confirmDelete(UserModel user) async {
+  Future<void> _confirmResetPassword(UserModel user) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Hapus User'),
-          content: Text('Apakah Anda yakin ingin menghapus ${user.name}?'),
+          title: const Text('Reset Password User'),
+          content: Text(
+            'Apakah Anda yakin ingin mereset password untuk ${user.name}?\n\n'
+            'User akan tidak bisa login dan harus melakukan registrasi ulang dengan '
+            'username dan nomor telepon yang sama untuk membuat password baru.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Batal'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Hapus'),
+              child: const Text('Reset Password'),
             ),
           ],
         );
@@ -224,11 +228,11 @@ class _ManageUserPageState extends State<ManageUserPage> {
 
     if (confirm == true) {
       try {
-        await viewModel.deleteUser(user.userId);
-        _showSnack('User berhasil dihapus.');
+        await viewModel.resetUserPassword(user.userId);
+        _showSnack('Password user berhasil direset.');
         _loadUsers();
       } catch (e) {
-        _showSnack('Gagal menghapus user: $e', color: Colors.red);
+        _showSnack('Gagal reset password: $e', color: Colors.red);
       }
     }
   }
@@ -313,65 +317,45 @@ class _ManageUserPageState extends State<ManageUserPage> {
                     return Center(child: Text('Error: ${snapshot.error}'));
                   }
 
-                  final allUsers = snapshot.data ?? [];
-                  final users = _filterUsers(allUsers);
-
-                  if (allUsers.isEmpty) {
-                    return const Center(
-                      child: Text(
-                          'Belum ada user. Tambah user baru untuk memulai.'),
-                    );
-                  }
-
-                  if (users.isEmpty) {
-                    return const Center(
-                      child: Text(
-                          'Tidak ada user yang cocok dengan pencarian.'),
-                    );
-                  }
-
-                  return SingleChildScrollView(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columnSpacing: 12,
-                        headingRowColor: WidgetStateColor.resolveWith(
-                            (states) => const Color(0xfff0f4ff)),
-                        columns: const [
-                          DataColumn(label: Text('Nama')),
-                          DataColumn(label: Text('Username')),
-                          DataColumn(label: Text('Telepon')),
-                          DataColumn(label: Text('Role')),
-                          DataColumn(label: Text('Aksi')),
-                        ],
-                        rows: users.map((user) {
-                          return DataRow(cells: [
-                            DataCell(Text(user.name)),
-                            DataCell(Text(user.username ?? '-')),
-                            DataCell(Text(user.phone)),
-                            DataCell(Text(user.role)),
-                            DataCell(Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit,
-                                      color: Colors.blue),
-                                  tooltip: 'Edit',
-                                  onPressed: () => _showUserForm(user: user),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.red),
-                                  tooltip: 'Hapus',
-                                  onPressed: () => _confirmDelete(user),
-                                ),
-                              ],
-                            )),
-                          ]);
-                        }).toList(),
-                      ),
-                    ),
-                  );
-                },
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DataTable(
+                    columnSpacing: 12,
+                    headingRowColor: WidgetStateColor.resolveWith(
+                        (states) => const Color(0xfff0f4ff)),
+                    columns: const [
+                      DataColumn(label: Text('Nama')),
+                      DataColumn(label: Text('Username')),
+                      DataColumn(label: Text('Telepon')),
+                      DataColumn(label: Text('Role')),
+                      DataColumn(label: Text('Aksi')),
+                    ],
+                    rows: users.map((user) {
+                      return DataRow(cells: [
+                        DataCell(Text(user.name)),
+                        DataCell(Text(user.username ?? '-')),
+                        DataCell(Text(user.phone)),
+                        DataCell(Text(user.role)),
+                        DataCell(Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              tooltip: 'Edit',
+                              onPressed: () => _showUserForm(user: user),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.lock_reset, color: Colors.orange),
+                              tooltip: 'Reset Password',
+                              onPressed: () => _confirmResetPassword(user),
+                            ),
+                          ],
+                        )),
+                      ]);
+                    }).toList(),
+                  ),
+                ],
               ),
             ),
           ],

@@ -91,7 +91,7 @@ class ManageUserViewModel {
     await _firestoreService.updateUser(user);
   }
 
-  Future<void> deleteUser(int userId) async {
-    await _firestoreService.deleteUser(userId);
+  Future<void> resetUserPassword(int userId) async {
+    await _firestoreService.resetUserPassword(userId);
   }
 }
