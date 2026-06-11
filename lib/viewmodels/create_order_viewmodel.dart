@@ -28,6 +28,7 @@ class CreateOrderViewModel {
 
   Future<int> getNextOrderId() async {
     final orders = await _firestoreService.getOrders();
+
     if (orders.isEmpty) return 1;
 
     final maxOrderId = orders
@@ -37,17 +38,19 @@ class CreateOrderViewModel {
     return maxOrderId + 1;
   }
 
-  Future<int> getNextUserId() async {
-    final users = await _firestoreService.getUsers();
-    if (users.isEmpty) return 1;
-
-    return users
-            .map((e) => e.userId)
-            .reduce((a, b) => a > b ? a : b) +
-        1;
+  Future<String> getNextOrderCode() async {
+    final orderId = await getNextOrderId();
+    return 'ORD${orderId.toString().padLeft(3, '0')}';
   }
 
-  /// Cari user by phone dulu, baru buat jika belum ada
+  Future<int> getNextUserId() async {
+    final users = await _firestoreService.getUsers();
+
+    if (users.isEmpty) return 1;
+
+    return users.map((e) => e.userId).reduce((a, b) => a > b ? a : b) + 1;
+  }
+
   Future<UserModel> findOrCreateCustomer({
     required String rawPhone,
     required String name,
@@ -59,6 +62,7 @@ class CreateOrderViewModel {
     }
 
     final existing = await _firestoreService.getUserByPhone(normalizedPhone);
+
     if (existing != null) return existing;
 
     final newId = await getNextUserId();
@@ -75,6 +79,7 @@ class CreateOrderViewModel {
     );
 
     await _firestoreService.addUser(guest);
+
     return guest;
   }
 
@@ -86,13 +91,25 @@ class CreateOrderViewModel {
     required int totalAmount,
     required String paymentMethod,
     required String notes,
+    int? generatedOrderId,
+    String? generatedOrderCode,
   }) async {
+    if (weight <= 0) {
+      throw Exception('Weight harus lebih dari 0 kg');
+    }
+
+    if (totalAmount <= 0) {
+      throw Exception('Total amount harus lebih dari 0');
+    }
+
     if (!allowedPaymentMethods.contains(paymentMethod)) {
       throw Exception('Payment method tidak valid');
     }
 
-    final orderId = await getNextOrderId();
-    final orderCode = 'ORD${orderId.toString().padLeft(3, '0')}';
+    final orderId = generatedOrderId ?? await getNextOrderId();
+
+    final orderCode =
+        generatedOrderCode ?? 'ORD${orderId.toString().padLeft(3, '0')}';
 
     final order = LaundryOrderModel(
       orderId: orderId,
@@ -103,7 +120,7 @@ class CreateOrderViewModel {
       totalWeight: weight,
       totalAmount: totalAmount,
       paymentMethod: paymentMethod,
-      notes: notes,
+      notes: notes.trim(),
       status: 'Received',
     );
 

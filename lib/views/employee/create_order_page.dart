@@ -22,6 +22,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
 
   final customerSearchController = TextEditingController();
   final newCustomerPhoneController = TextEditingController();
+  final orderCodeController = TextEditingController();
   final weightController = TextEditingController();
   final totalAmountController = TextEditingController();
   final notesController = TextEditingController();
@@ -29,8 +30,12 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   UserModel? selectedCustomer;
   ServiceModel? selectedService;
 
+  int? generatedOrderId;
+  String? generatedOrderCode;
+
   List<UserModel> customers = [];
   List<ServiceModel> services = [];
+
   bool isLoading = true;
   bool isSaving = false;
   bool addNewCustomer = false;
@@ -39,10 +44,32 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   @override
   void initState() {
     super.initState();
-    loadData();
+
+    loadInitialData();
 
     weightController.addListener(() {
       calculateTotalAmount();
+    });
+  }
+
+  Future<void> loadInitialData() async {
+    final customerData = await viewModel.getCustomers();
+    final serviceData = await viewModel.getServices();
+
+    final nextOrderId = await viewModel.getNextOrderId();
+    final nextOrderCode = 'ORD${nextOrderId.toString().padLeft(3, '0')}';
+
+    if (!mounted) return;
+
+    setState(() {
+      customers = customerData;
+      services = serviceData;
+
+      generatedOrderId = nextOrderId;
+      generatedOrderCode = nextOrderCode;
+      orderCodeController.text = nextOrderCode;
+
+      isLoading = false;
     });
   }
 
@@ -59,18 +86,12 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     totalAmountController.text = total.toString();
   }
 
-  Future<void> loadData() async {
-    final customerData = await viewModel.getCustomers();
-    final serviceData = await viewModel.getServices();
-
-    setState(() {
-      customers = customerData;
-      services = serviceData;
-      isLoading = false;
-    });
-  }
-
   Future<void> submitOrder() async {
+    if (generatedOrderId == null || generatedOrderCode == null) {
+      setState(() => message = 'Order code belum muncul');
+      return;
+    }
+
     if (selectedService == null) {
       setState(() => message = 'Pilih service dulu');
       return;
@@ -86,8 +107,22 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       return;
     }
 
+    final weight = int.tryParse(weightController.text.trim()) ?? 0;
+
+    if (weight <= 0) {
+      setState(() => message = 'Weight harus lebih dari 0 kg');
+      return;
+    }
+
     if (totalAmountController.text.trim().isEmpty) {
       setState(() => message = 'Total amount belum muncul');
+      return;
+    }
+
+    final totalAmount = int.tryParse(totalAmountController.text.trim()) ?? 0;
+
+    if (totalAmount <= 0) {
+      setState(() => message = 'Total amount harus lebih dari 0');
       return;
     }
 
@@ -131,7 +166,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
           builder: (_) => PaymentPage(
             customerName: customer.name,
             serviceName: selectedService!.serviceName,
-            totalAmount: int.parse(totalAmountController.text),
+            weight: weight,
+            pricePerKg: selectedService!.servicePrice,
+            totalAmount: totalAmount,
           ),
         ),
       );
@@ -150,10 +187,12 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
         customer: customer,
         cashierId: widget.employee.userId,
         service: selectedService!,
-        weight: int.parse(weightController.text),
-        totalAmount: int.parse(totalAmountController.text),
+        weight: weight,
+        totalAmount: totalAmount,
         paymentMethod: paymentMethod,
         notes: notesController.text,
+        generatedOrderId: generatedOrderId,
+        generatedOrderCode: generatedOrderCode,
       );
 
       setState(() {
@@ -170,8 +209,10 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       totalAmountController.clear();
       notesController.clear();
 
-      await loadData();
+      await loadInitialData();
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         isSaving = false;
         message = 'Error: $e';
@@ -183,6 +224,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   void dispose() {
     customerSearchController.dispose();
     newCustomerPhoneController.dispose();
+    orderCodeController.dispose();
     weightController.dispose();
     totalAmountController.dispose();
     notesController.dispose();
@@ -213,6 +255,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
               padding: const EdgeInsets.all(20),
               children: [
                 headerCard(),
+
                 const SizedBox(height: 20),
 
                 formCard(
@@ -224,6 +267,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
                     const SizedBox(height: 14),
 
                     TextField(
@@ -296,6 +340,37 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
+                    const SizedBox(height: 14),
+
+                    TextField(
+                      controller: orderCodeController,
+                      readOnly: true,
+                      enableInteractiveSelection: false,
+                      decoration: InputDecoration(
+                        labelText: 'Order Code',
+                        prefixIcon: const Icon(Icons.receipt_long),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade300,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: Color(0xff4A90E2),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 14),
 
                     DropdownButtonFormField<ServiceModel>(
@@ -400,24 +475,30 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       ),
       child: const Row(
         children: [
-          Icon(Icons.add_shopping_cart, color: Colors.white, size: 42),
+          Icon(
+            Icons.add_shopping_cart,
+            color: Colors.white,
+            size: 42,
+          ),
           SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'New Laundry Order',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'New Laundry Order',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              Text(
-                'Create customer laundry transaction',
-                style: TextStyle(color: Colors.white70),
-              ),
-            ],
+                Text(
+                  'Create customer laundry transaction',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ],
+            ),
           ),
         ],
       ),
