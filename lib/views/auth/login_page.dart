@@ -83,6 +83,15 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Future<void> _login() async {
+    // Validasi kosong dulu
+    if (usernameLoginController.text.isEmpty) {
+      setState(() => loginError = 'Username harus diisi');
+      return;
+    }
+    if (passwordLoginController.text.isEmpty) {
+      setState(() => loginError = 'Password harus diisi');
+      return;
+    }
     setState(() {
       isLoadingLogin = true;
       loginError = '';
