@@ -49,6 +49,16 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
     dashboardFuture = viewModel.getDashboardSummary();
   }
 
+  List<LaundryOrderModel> sortOrdersDesc(List<LaundryOrderModel> orders) {
+    final sortedOrders = List<LaundryOrderModel>.from(orders);
+
+    sortedOrders.sort((a, b) {
+      return b.orderId.compareTo(a.orderId);
+    });
+
+    return sortedOrders;
+  }
+
   void _showSnack(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -338,16 +348,21 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
 
           final data = snapshot.data ?? {};
 
-          final List<LaundryOrderModel> orders =
-              data['orders'] as List<LaundryOrderModel>? ?? [];
+          final List<LaundryOrderModel> orders = sortOrdersDesc(
+            data['orders'] as List<LaundryOrderModel>? ?? [],
+          );
 
-          final activeOrders = orders.where((order) {
-            return order.status.toLowerCase() != 'completed';
-          }).toList();
+          final activeOrders = sortOrdersDesc(
+            orders.where((order) {
+              return order.status.toLowerCase().trim() != 'picked up';
+            }).toList(),
+          );
 
-          final completedOrders = orders.where((order) {
-            return order.status.toLowerCase() == 'completed';
-          }).toList();
+          final completedOrders = sortOrdersDesc(
+            orders.where((order) {
+              return order.status.toLowerCase().trim() == 'picked up';
+            }).toList(),
+          );
 
           return Padding(
             padding: const EdgeInsets.all(20),
@@ -764,6 +779,8 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
     required IconData icon,
     required List<LaundryOrderModel> orders,
   }) {
+    final sortedOrders = sortOrdersDesc(orders);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
@@ -777,7 +794,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
           ),
         ),
         children: [
-          if (orders.isEmpty)
+          if (sortedOrders.isEmpty)
             const Padding(
               padding: EdgeInsets.all(16),
               child: Text('No orders found'),
@@ -792,7 +809,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
                   DataColumn(label: Text('Amount')),
                   DataColumn(label: Text('Status')),
                 ],
-                rows: orders.map((order) {
+                rows: sortedOrders.map((order) {
                   return DataRow(
                     cells: [
                       DataCell(Text(order.orderCode)),

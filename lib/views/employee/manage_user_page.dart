@@ -14,13 +14,15 @@ class _ManageUserPageState extends State<ManageUserPage> {
   final ManageUserViewModel viewModel = ManageUserViewModel();
   late Future<List<UserModel>> _usersFuture;
   final TextEditingController _searchController = TextEditingController();
+
   String _searchQuery = '';
-  String _selectedRoleFilter = 'All'; // Filter role aktif
+  String _selectedRoleFilter = 'All';
 
   @override
   void initState() {
     super.initState();
     _loadUsers();
+
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -42,6 +44,7 @@ class _ManageUserPageState extends State<ManageUserPage> {
 
   void _showSnack(String message, {Color color = Colors.green}) {
     if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -50,18 +53,20 @@ class _ManageUserPageState extends State<ManageUserPage> {
     );
   }
 
+  String cleanErrorMessage(Object error) {
+    return error.toString().replaceFirst('Exception: ', '');
+  }
+
   List<UserModel> _filterUsers(List<UserModel> users) {
     return users.where((user) {
-      // Filter by search query
       final matchesSearch = _searchQuery.isEmpty ||
           user.name.toLowerCase().contains(_searchQuery) ||
           (user.username?.toLowerCase().contains(_searchQuery) ?? false) ||
           user.phone.toLowerCase().contains(_searchQuery) ||
           user.role.toLowerCase().contains(_searchQuery);
 
-      // Filter by role
-      final matchesRole = _selectedRoleFilter == 'All' ||
-          user.role == _selectedRoleFilter;
+      final matchesRole =
+          _selectedRoleFilter == 'All' || user.role == _selectedRoleFilter;
 
       return matchesSearch && matchesRole;
     }).toList();
@@ -72,123 +77,236 @@ class _ManageUserPageState extends State<ManageUserPage> {
     final usernameController = TextEditingController(text: user?.username ?? '');
     final phoneController = TextEditingController(text: user?.phone ?? '');
     final addressController = TextEditingController(text: user?.address ?? '');
+
     String selectedRole = user?.role ?? 'Customer';
+    String dialogError = '';
+    bool isSubmitting = false;
+
     final formKey = GlobalKey<FormState>();
 
     await showDialog<void>(
       context: context,
-      builder: (context) {
+      barrierDismissible: !isSubmitting,
+      builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 24,
+              ),
               title: Text(user == null ? 'Tambah User Baru' : 'Edit User'),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: nameController,
-                        decoration: const InputDecoration(labelText: 'Nama'),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Nama wajib diisi.';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: usernameController,
-                        decoration: const InputDecoration(labelText: 'Username'),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Username wajib diisi.';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: phoneController,
-                        decoration: const InputDecoration(labelText: 'Nomor Telepon'),
-                        keyboardType: TextInputType.phone,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Nomor telepon wajib diisi.';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: addressController,
-                        decoration: const InputDecoration(labelText: 'Alamat (opsional)'),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedRole,
-                        decoration: const InputDecoration(labelText: 'Role'),
-                        items: const [
-                          DropdownMenuItem(value: 'Admin', child: Text('Admin')),
-                          DropdownMenuItem(value: 'Cashier', child: Text('Cashier')),
-                          DropdownMenuItem(value: 'Customer', child: Text('Customer')),
+              content: SizedBox(
+                width: 380,
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (dialogError.isNotEmpty) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Colors.red.shade200,
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  Icons.error_outline,
+                                  color: Colors.red,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    dialogError,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
                         ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setDialogState(() {
-                              selectedRole = value;
-                            });
-                          }
-                        },
-                      ),
-                    ],
+
+                        TextFormField(
+                          controller: nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nama',
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Nama wajib diisi.';
+                            }
+                            return null;
+                          },
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        TextFormField(
+                          controller: usernameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
+                            helperText: 'Hanya huruf, angka, dan underscore (_)',
+                            helperMaxLines: 2,
+                            errorMaxLines: 3,
+                          ),
+                          validator: (value) {
+                            final username = value?.trim() ?? '';
+
+                            if (username.isEmpty) {
+                              return 'Username wajib diisi.';
+                            }
+
+                            if (RegExp(r'\s').hasMatch(username)) {
+                              return 'Username tidak boleh mengandung spasi.';
+                            }
+
+                            if (!RegExp(r'^[a-zA-Z0-9_]+$')
+                                .hasMatch(username)) {
+                              return 'Username hanya boleh huruf, angka, dan underscore (_).';
+                            }
+
+                            return null;
+                          },
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        TextFormField(
+                          controller: phoneController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nomor Telepon',
+                          ),
+                          keyboardType: TextInputType.phone,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Nomor telepon wajib diisi.';
+                            }
+                            return null;
+                          },
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        TextFormField(
+                          controller: addressController,
+                          decoration: const InputDecoration(
+                            labelText: 'Alamat (opsional)',
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        DropdownButtonFormField<String>(
+                          initialValue: selectedRole,
+                          decoration: const InputDecoration(
+                            labelText: 'Role',
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'Admin',
+                              child: Text('Admin'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Cashier',
+                              child: Text('Cashier'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Customer',
+                              child: Text('Customer'),
+                            ),
+                          ],
+                          onChanged: isSubmitting
+                              ? null
+                              : (value) {
+                                  if (value != null) {
+                                    setDialogState(() {
+                                      selectedRole = value;
+                                    });
+                                  }
+                                },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
                   child: const Text('Batal'),
                 ),
                 ElevatedButton(
-                  onPressed: () async {
-                    if (!formKey.currentState!.validate()) return;
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (!formKey.currentState!.validate()) return;
 
-                    try {
-                      if (user == null) {
-                        await viewModel.addUser(
-                          name: nameController.text,
-                          username: usernameController.text,
-                          phone: phoneController.text,
-                          address: addressController.text,
-                          role: selectedRole,
-                        );
-                        if (!mounted) return;
-                        _showSnack('User berhasil ditambahkan.');
-                      } else {
-                        await viewModel.updateUser(
-                          userId: user.userId,
-                          name: nameController.text,
-                          username: usernameController.text,
-                          phone: phoneController.text,
-                          address: addressController.text,
-                          role: selectedRole,
-                        );
-                        if (!mounted) return;
-                        _showSnack('Data user berhasil diperbarui.');
-                      }
+                          setDialogState(() {
+                            isSubmitting = true;
+                            dialogError = '';
+                          });
 
-                      if (!mounted) return;
-                      Navigator.of(this.context).pop();
-                      _loadUsers();
-                    } catch (e) {
-                      if (!mounted) return;
-                      _showSnack(e.toString(), color: Colors.red);
-                    }
-                  },
-                  child: Text(user == null ? 'Simpan' : 'Perbarui'),
+                          try {
+                            if (user == null) {
+                              await viewModel.addUser(
+                                name: nameController.text,
+                                username: usernameController.text,
+                                phone: phoneController.text,
+                                address: addressController.text,
+                                role: selectedRole,
+                              );
+
+                              if (!mounted) return;
+
+                              Navigator.of(dialogContext).pop();
+                              _showSnack('User berhasil ditambahkan.');
+                            } else {
+                              await viewModel.updateUser(
+                                userId: user.userId,
+                                name: nameController.text,
+                                username: usernameController.text,
+                                phone: phoneController.text,
+                                address: addressController.text,
+                                role: selectedRole,
+                              );
+
+                              if (!mounted) return;
+
+                              Navigator.of(dialogContext).pop();
+                              _showSnack('Data user berhasil diperbarui.');
+                            }
+
+                            _loadUsers();
+                          } catch (e) {
+                            setDialogState(() {
+                              isSubmitting = false;
+                              dialogError = cleanErrorMessage(e);
+                            });
+                          }
+                        },
+                  child: Text(
+                    isSubmitting
+                        ? 'Menyimpan...'
+                        : user == null
+                            ? 'Simpan'
+                            : 'Perbarui',
+                  ),
                 ),
               ],
             );
@@ -196,6 +314,11 @@ class _ManageUserPageState extends State<ManageUserPage> {
         );
       },
     );
+
+    nameController.dispose();
+    usernameController.dispose();
+    phoneController.dispose();
+    addressController.dispose();
   }
 
   Future<void> _confirmResetPassword(UserModel user) async {
@@ -215,7 +338,9 @@ class _ManageUserPageState extends State<ManageUserPage> {
               child: const Text('Batal'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+              ),
               onPressed: () => Navigator.of(context).pop(true),
               child: const Text('Reset Password'),
             ),
@@ -232,7 +357,10 @@ class _ManageUserPageState extends State<ManageUserPage> {
         _showSnack('Password user berhasil direset.');
         _loadUsers();
       } catch (e) {
-        _showSnack('Gagal reset password: $e', color: Colors.red);
+        _showSnack(
+          'Gagal reset password: ${cleanErrorMessage(e)}',
+          color: Colors.red,
+        );
       }
     }
   }
@@ -248,7 +376,6 @@ class _ManageUserPageState extends State<ManageUserPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Search Bar
             TextField(
               controller: _searchController,
               decoration: InputDecoration(
@@ -265,18 +392,21 @@ class _ManageUserPageState extends State<ManageUserPage> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 16,
+                ),
               ),
             ),
+
             const SizedBox(height: 12),
 
-            // Role Filter Chips
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: ['All', 'Customer', 'Cashier', 'Admin'].map((role) {
                   final isSelected = _selectedRoleFilter == role;
+
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: FilterChip(
@@ -287,90 +417,109 @@ class _ManageUserPageState extends State<ManageUserPage> {
                           _selectedRoleFilter = role;
                         });
                       },
-                      selectedColor: const Color(0xff4A90E2).withOpacity(0.2),
+                      selectedColor:
+                          const Color(0xff4A90E2).withOpacity(0.2),
                       checkmarkColor: const Color(0xff4A90E2),
                       labelStyle: TextStyle(
                         color: isSelected
                             ? const Color(0xff4A90E2)
                             : Colors.black87,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   );
                 }).toList(),
               ),
             ),
+
             const SizedBox(height: 12),
 
-            // Table
             Expanded(
               child: FutureBuilder<List<UserModel>>(
                 future: _usersFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
                   }
 
                   if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
+                    return Center(
+                      child: Text('Error: ${snapshot.error}'),
+                    );
                   }
 
                   final allUsers = snapshot.data ?? [];
                   final users = _filterUsers(allUsers);
 
                   if (users.isEmpty) {
-                    return const Center(child: Text('Belum ada user. Tambah user baru untuk memulai.'));
+                    return const Center(
+                      child: Text(
+                        'Belum ada user. Tambah user baru untuk memulai.',
+                      ),
+                    );
                   }
 
                   return SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        DataTable(
-                          columnSpacing: 12,
-                          headingRowColor: WidgetStateColor.resolveWith(
-                              (states) => const Color(0xfff0f4ff)),
-                          columns: const [
-                            DataColumn(label: Text('Nama')),
-                            DataColumn(label: Text('Username')),
-                            DataColumn(label: Text('Telepon')),
-                            DataColumn(label: Text('Role')),
-                            DataColumn(label: Text('Aksi')),
-                          ],
-                          rows: users.map((user) {
-                            return DataRow(cells: [
+                    scrollDirection: Axis.horizontal,
+                    child: SingleChildScrollView(
+                      child: DataTable(
+                        columnSpacing: 12,
+                        headingRowColor: WidgetStateColor.resolveWith(
+                          (states) => const Color(0xffF0F4FF),
+                        ),
+                        columns: const [
+                          DataColumn(label: Text('Nama')),
+                          DataColumn(label: Text('Username')),
+                          DataColumn(label: Text('Telepon')),
+                          DataColumn(label: Text('Role')),
+                          DataColumn(label: Text('Aksi')),
+                        ],
+                        rows: users.map((user) {
+                          return DataRow(
+                            cells: [
                               DataCell(Text(user.name)),
                               DataCell(Text(user.username ?? '-')),
                               DataCell(Text(user.phone)),
                               DataCell(Text(user.role)),
-                              DataCell(Row(
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, color: Colors.blue),
-                                    tooltip: 'Edit',
-                                    onPressed: () => _showUserForm(user: user),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.lock_reset, color: Colors.orange),
-                                    tooltip: 'Reset Password',
-                                    onPressed: () => _confirmResetPassword(user),
-                                  ),
-                                ],
-                              )),
-                            ]);
-                          }).toList(),
-                        ),
-                      ],
+                              DataCell(
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.edit,
+                                        color: Colors.blue,
+                                      ),
+                                      tooltip: 'Edit',
+                                      onPressed: () =>
+                                          _showUserForm(user: user),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.lock_reset,
+                                        color: Colors.orange,
+                                      ),
+                                      tooltip: 'Reset Password',
+                                      onPressed: () =>
+                                          _confirmResetPassword(user),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
                     ),
                   );
-                    },
-                  ),
-                ),
-            ],
-          ),
+                },
+              ),
+            ),
+          ],
         ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showUserForm(),
         icon: const Icon(Icons.add),
